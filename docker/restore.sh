@@ -6,8 +6,12 @@
 # The dump includes DROP statements (--clean), so this REPLACES the current data.
 set -e
 cd "$(dirname "$0")/.."
-# shellcheck disable=SC1091
-[ -f .env ] && . ./.env
+
+# Read one KEY from .env without executing the file as shell code.
+env_get() { grep -E "^$1=" .env 2>/dev/null | tail -n 1 | cut -d= -f2- | tr -d '\r' | sed -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'$/\1/"; }
+POSTGRES_USER="$(env_get POSTGRES_USER)"
+POSTGRES_DB="$(env_get POSTGRES_DB)"
+
 FILE="$1"
 [ -f "${FILE}" ] || { echo "Usage: $0 <backup.sql.gz>"; exit 1; }
 

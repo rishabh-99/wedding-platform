@@ -154,7 +154,7 @@ Development needs none. For production, copy `.env.example` to `.env` — every 
 |---|---|---|
 | `DOMAIN` | ✅ | e.g. `rishabhandnandita.com` (nginx + certificates) |
 | `PUBLIC_URL` | ✅ | `https://rishabhandnandita.com` (calendar links, OG tags, CORS) |
-| `LETSENCRYPT_EMAIL` | ✅ | certificate expiry notices |
+| `LETSENCRYPT_EMAIL` | | optional — certificate expiry notices; leave empty to register without an email |
 | `POSTGRES_PASSWORD` | ✅ | database password (random) |
 | `DATABASE_URL` | ✅ | `postgresql://wedding:<password>@db:5432/wedding?schema=public` |
 | `JWT_SECRET` | ✅ | 64+ random chars — `openssl rand -hex 48` |
@@ -352,7 +352,7 @@ openssl rand -base64 32 | tr -d '/+='                 # → POSTGRES_PASSWORD
 nano .env
 ```
 
-Fill in at least: `DOMAIN`, `PUBLIC_URL`, `LETSENCRYPT_EMAIL`, `POSTGRES_PASSWORD` **and the same password inside `DATABASE_URL`**, `JWT_SECRET`, `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `STORAGE_DRIVER=s3`, `S3_BUCKET`, `S3_REGION=ap-south-1`. Then `chmod 600 .env`.
+Fill in at least: `DOMAIN`, `PUBLIC_URL`, `POSTGRES_PASSWORD` **and the same password inside `DATABASE_URL`**, `JWT_SECRET`, `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `STORAGE_DRIVER=s3`, `S3_BUCKET`, `S3_REGION=ap-south-1`. Then `chmod 600 .env`.
 
 ### 9.8 PostgreSQL
 
@@ -376,7 +376,7 @@ nginx starts with a temporary self-signed certificate so the next step can run.
 sh docker/init-letsencrypt.sh
 ```
 
-This requests a real certificate for `DOMAIN` (and `www.` unless `INCLUDE_WWW=false`) and reloads nginx. Renewal is automatic: the `certbot` container renews every 12 h and nginx reloads every 6 h. (Testing? set `LETSENCRYPT_STAGING=true` first to avoid rate limits.)
+This requests a real certificate for `DOMAIN` (and `www.` unless `INCLUDE_WWW=false`) and reloads nginx. `LETSENCRYPT_EMAIL` is optional: without it the script registers with `--register-unsafely-without-email`. The only difference is that you won't get expiry-warning emails, which you don't need because renewal is automatic. Renewal is automatic: the `certbot` container renews every 12 h and nginx reloads every 6 h. (Testing? set `LETSENCRYPT_STAGING=true` first to avoid rate limits.)
 
 Visit `https://yourdomain.com` and `https://yourdomain.com/admin`. Log in with your `SEED_ADMIN_*` credentials, then:
 
