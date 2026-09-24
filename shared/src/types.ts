@@ -1,10 +1,10 @@
 /** API contract types shared by backend and frontend. */
 import type { ScheduleResult, LiveModeSetting } from './schedule';
 
-export type Role = 'ADMIN' | 'EDITOR';
+export type Role = 'ADMIN' | 'EDITOR' | 'COORDINATOR' | 'HOSPITALITY' | 'PHOTOGRAPHER';
 export type EventStatus = 'SCHEDULED' | 'POSTPONED' | 'CANCELLED';
 export type MediaType = 'IMAGE' | 'VIDEO' | 'DOCUMENT';
-export type MediaPurpose = 'GALLERY' | 'LIVE' | 'GUESTBOOK' | 'BRANDING' | 'DRESSCODE' | 'STORY';
+export type MediaPurpose = 'GALLERY' | 'LIVE' | 'GUESTBOOK' | 'BRANDING' | 'DRESSCODE' | 'STORY' | 'PORTRAIT';
 export type LiveUpdateType = 'TEXT' | 'PHOTO' | 'VIDEO' | 'ANNOUNCEMENT';
 export type LiveUpdateStatus = 'PUBLISHED' | 'SCHEDULED' | 'DRAFT';
 export type AttendanceStatus = 'ATTENDING' | 'MAYBE' | 'DECLINED';
@@ -332,7 +332,8 @@ export type RealtimeEventType =
   | 'LIVE_UPDATE_DELETED'
   | 'SCHEDULE_CHANGED'
   | 'MEDIA_PUBLISHED'
-  | 'SETTINGS_CHANGED';
+  | 'SETTINGS_CHANGED'
+  | 'CHECKIN_UPDATED';
 
 export interface RealtimeMessage {
   id: number;

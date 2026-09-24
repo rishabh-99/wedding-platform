@@ -14,7 +14,10 @@ import {
   type RsvpInput,
   type RsvpSubmitResult,
 } from '@wedding/shared';
+import { Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { ApiError, api } from '../../services/api';
+import { guestKey } from '../../services/guest';
 import { OrnamentDivider } from '../ornaments/Ornaments';
 
 interface Props {
@@ -33,6 +36,7 @@ const newKey = () => (crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}-
  */
 export function RsvpForm({ events, timeZone: tz, submit }: Props) {
   const [result, setResult] = useState<RsvpSubmitResult | null>(null);
+  const qc = useQueryClient();
   const [serverError, setServerError] = useState<string | null>(null);
   const idempotencyKey = useRef(newKey());
 
@@ -73,6 +77,8 @@ export function RsvpForm({ events, timeZone: tz, submit }: Props) {
       const payload: RsvpInput = { ...values, idempotencyKey: idempotencyKey.current, eventIds: declined ? [] : values.eventIds };
       const res = await (submit ?? ((v: RsvpInput) => api.post<RsvpSubmitResult>('/api/rsvp', v)))(payload);
       setResult(res);
+      // Submitting an RSVP also signs this device in to the family's guest pass.
+      void qc.invalidateQueries({ queryKey: guestKey });
       window.scrollTo?.({ top: (document.getElementById('rsvp')?.offsetTop ?? 0) - 80, behavior: 'smooth' });
     } catch (err) {
       if (err instanceof ApiError) {
@@ -114,6 +120,14 @@ export function RsvpForm({ events, timeZone: tz, submit }: Props) {
         </p>
         {result.updated && (
           <p className="mt-3 text-sm text-ink-muted">We found an earlier RSVP with this phone number and updated it.</p>
+        )}
+        {result.attendanceStatus !== 'DECLINED' && (
+          <div className="mt-6">
+            <Link to="/pass" className="btn-primary">
+              Open your guest pass
+            </Link>
+            <p className="mt-2 text-xs text-ink-muted">Your entry QR, room details and journey — all in one place.</p>
+          </div>
         )}
         <button
           type="button"

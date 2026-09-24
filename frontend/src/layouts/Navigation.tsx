@@ -6,6 +6,7 @@ import { countdownParts, formatTime, relativeDayLabel } from '@wedding/shared';
 import { useClock } from '../hooks/useClock';
 import { useSchedule } from '../hooks/useSchedule';
 import { useSettings } from '../services/queries';
+import { useGuestSignedIn } from '../services/guest';
 import { Monogram } from '../components/ornaments/Ornaments';
 
 interface NavItem {
@@ -26,6 +27,7 @@ export const PRIMARY_NAV: NavItem[] = [
 ];
 
 const SECONDARY_NAV: NavItem[] = [
+  { to: '/pass', label: 'My guest pass' },
   { to: '/now', label: 'What’s Happening Now' },
   { to: '/journal', label: 'Wedding Journal' },
   { to: '/dress-code', label: 'What to Wear', section: 'dressCode' },
@@ -53,7 +55,12 @@ export function useNowStatus(): { to: string; label: string; compact: string; sh
 
 function useVisible(items: NavItem[]) {
   const { data: settings } = useSettings();
-  return items.filter((i) => !i.section || settings?.sections[i.section] !== false);
+  const signedIn = useGuestSignedIn();
+  return items
+    .filter((i) => !i.section || settings?.sections[i.section] !== false)
+    // Once a family has RSVP'd and signed in, the RSVP slot becomes their pass.
+    .map((i) => (signedIn && i.to === '/rsvp' ? { to: '/pass', label: 'My pass' } : i))
+    .filter((i, idx, arr) => arr.findIndex((x) => x.to === i.to) === idx);
 }
 
 export function SiteHeader() {
@@ -170,14 +177,14 @@ export function SiteHeader() {
             className="overflow-hidden border-t border-gold/20 bg-ivory"
           >
             <div className="container-page grid gap-x-8 py-5 sm:grid-cols-2 lg:grid-cols-3">
-              {[...primary, ...secondary].map((item) => (
+              {[...primary, ...secondary.filter((x) => !primary.some((p) => p.to === x.to))].map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
                   end={item.to === '/'}
                   className={({ isActive }) =>
                     `flex min-h-[48px] items-center border-b border-gold/15 font-display text-xl ${isActive ? 'text-maroon' : 'text-ink hover:text-maroon'} ${
-                      PRIMARY_NAV.some((p) => p.to === item.to) ? 'xl:hidden' : ''
+                      primary.some((p) => p.to === item.to) ? 'xl:hidden' : ''
                     }`
                   }
                 >
@@ -196,12 +203,15 @@ export function SiteHeader() {
 export function MobileNav() {
   const status = useNowStatus();
   const { data: settings } = useSettings();
+  const signedIn = useGuestSignedIn();
   const items = [
     { to: '/', label: 'Home', icon: 'M4 10.5L12 4l8 6.5V20h-5v-6H9v6H4z' },
     { to: status.to, label: status.short, icon: 'M12 6v6l4 2M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18Z', live: status.live },
     { to: '/celebrations', label: 'Events', icon: 'M4 7h16v13H4zM4 11h16M8 3v4M16 3v4' },
     { to: '/venues', label: 'Venues', icon: 'M12 21s7-6 7-11.5a7 7 0 1 0-14 0C5 15 12 21 12 21ZM12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z' },
-    settings?.sections.rsvp !== false
+    signedIn
+      ? { to: '/pass', label: 'My pass', icon: 'M4 5h16v14H4zM8 9h3v3H8zM14 9h2M14 12h2M8 15h8' }
+      : settings?.sections.rsvp !== false
       ? { to: '/rsvp', label: 'RSVP', icon: 'M4 6h16v12H4zM4 7l8 6 8-6' }
       : { to: '/gallery', label: 'Gallery', icon: 'M4 5h16v14H4zM4 15l5-5 4 4 3-3 4 4' },
   ];

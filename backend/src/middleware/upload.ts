@@ -26,6 +26,20 @@ export const adminUpload = multer({
   fileFilter,
 });
 
+/** Guest shared-album uploads: photos only (validated again later), up to 10 per request. */
+export const guestAlbumUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: UPLOAD_LIMITS.guestImageMaxBytes, files: 10, fields: 5, fieldSize: 1024 },
+  fileFilter,
+});
+
+/** Photographer's photo of the day: one image. */
+export const portraitUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: UPLOAD_LIMITS.imageMaxBytes, files: 1, fields: 10, fieldSize: 1024 },
+  fileFilter,
+});
+
 export const guestUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: UPLOAD_LIMITS.guestImageMaxBytes, files: 1, fields: 10, fieldSize: 8 * 1024 },

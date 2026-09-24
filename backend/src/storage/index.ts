@@ -43,6 +43,7 @@ export const StorageKeys = {
   branding: (name: string) => `wedding/branding/${name}`,
   dresscode: (name: string) => `wedding/dresscode/${name}`,
   story: (name: string) => `wedding/story/${name}`,
+  portrait: (name: string) => `wedding/portraits/${name}`,
   misc: (name: string) => `wedding/misc/${name}`,
   backup: (name: string) => `private/backups/${name}`,
 };

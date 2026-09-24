@@ -5,6 +5,7 @@ import { logger } from './lib/logger';
 import { prisma } from './lib/prisma';
 import { broker } from './realtime/sseBroker';
 import { scheduler } from './realtime/scheduler';
+import { pushService } from './services/push.service';
 import { storage } from './storage';
 
 async function main() {
@@ -12,6 +13,7 @@ async function main() {
   const app = createApp();
   broker.start();
   scheduler.start();
+  if (env.PUSH_ENABLED) pushService.start();
 
   const server: Server = app.listen(env.PORT, env.HOST, () => {
     logger.info(

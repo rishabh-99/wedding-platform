@@ -8,6 +8,8 @@ import {
   type AttendanceStatus,
   type GuestSide,
   type RsvpDTO,
+  type SessionUser,
+  can,
 } from '@wedding/shared';
 import { LoadingBlock } from '../../components/ui/primitives';
 import { api } from '../../services/api';
@@ -17,9 +19,11 @@ import { btn, ConfirmButton, EmptyRow, FieldRow, Modal, PageHeader, Select, Stat
 
 const invalidate = [['admin', 'rsvps'], ['admin', 'rooms']];
 
-export default function RsvpsPage() {
+export default function RsvpsPage({ user }: { user: SessionUser }) {
   const [params, setParams] = useSearchParams();
-  const tab = params.get('tab') === 'rooms' ? 'rooms' : 'guests';
+  const canRooms = can(user.role, 'rooms');
+  const canEdit = can(user.role, 'guestsEdit');
+  const tab = canRooms && params.get('tab') === 'rooms' ? 'rooms' : 'guests';
   const { data: dash } = useDashboard();
 
   return (
@@ -47,6 +51,7 @@ export default function RsvpsPage() {
         </div>
       )}
 
+      {canRooms && (
       <div className="mb-5 flex gap-2" role="tablist" aria-label="RSVP views">
         <button type="button" role="tab" aria-selected={tab === 'guests'} className={tab === 'guests' ? btn.primary : btn.secondary} onClick={() => setParams({})}>
           Guests
@@ -55,13 +60,14 @@ export default function RsvpsPage() {
           Rooms
         </button>
       </div>
+      )}
 
-      {tab === 'rooms' ? <RoomBoard /> : <GuestList />}
+      {tab === 'rooms' ? <RoomBoard /> : <GuestList canRooms={canRooms} canEdit={canEdit} />}
     </div>
   );
 }
 
-function GuestList() {
+function GuestList({ canRooms, canEdit }: { canRooms: boolean; canEdit: boolean }) {
   const tz = useWeddingTz();
   const { data: events } = useAdminEvents();
   const { data: accommodations } = useAccommodations();
@@ -167,7 +173,9 @@ function GuestList() {
                     <td className={`${tableCls.td} tabular-nums`}>{r.numberOfGuests}</td>
                     <td className={tableCls.td}><StatusPill status={r.attendanceStatus} /></td>
                     <td className={tableCls.td}>
-                      {r.attendanceStatus === 'DECLINED' && !r.rooms.length ? (
+                      {!canRooms ? (
+                        <RoomsSummary rooms={r.rooms} />
+                      ) : r.attendanceStatus === 'DECLINED' && !r.rooms.length ? (
                         <span className="text-xs text-ink-muted">—</span>
                       ) : (
                         <button
@@ -184,15 +192,16 @@ function GuestList() {
                     <td className={`${tableCls.td} whitespace-nowrap text-xs`}>{formatDateTime(r.submittedAt, tz)}</td>
                     <td className={tableCls.td}>
                       <div className="flex flex-wrap gap-1">
-                        <button
+                        {!canRooms && !canEdit && <a href={`tel:${r.phone.replace(/s/g, '')}`} className={`${btn.small} border border-gold/40`}>Call</a>}
+                        {canRooms && <button
                           type="button"
                           className={`${btn.small} border border-gold/40`}
                           onClick={() => setRoomTarget({ rsvpId: r.id, guestName: r.guestName, numberOfGuests: r.numberOfGuests, rooms: r.rooms })}
                         >
                           Rooms
-                        </button>
-                        <button type="button" className={`${btn.small} border border-gold/40`} onClick={() => setEditing(r)}>Edit</button>
-                        <ConfirmButton className={`${btn.small} border border-maroon/40 text-maroon`} confirmLabel="Sure?" onConfirm={() => remove.mutate(r.id)}>Delete</ConfirmButton>
+                        </button>}
+                        {canEdit && <button type="button" className={`${btn.small} border border-gold/40`} onClick={() => setEditing(r)}>Edit</button>}
+                        {canEdit && <ConfirmButton className={`${btn.small} border border-maroon/40 text-maroon`} confirmLabel="Sure?" onConfirm={() => remove.mutate(r.id)}>Delete</ConfirmButton>}
                       </div>
                     </td>
                   </tr>

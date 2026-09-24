@@ -7,6 +7,7 @@ import { eventService } from '../services/event.service';
 import { faqService, storyService, travelService, venueService } from '../services/content.service';
 import { galleryService } from '../services/gallery.service';
 import { guestbookService } from '../services/guestbook.service';
+import { setGuestSession } from '../services/guest.service';
 import { liveUpdateService } from '../services/liveUpdate.service';
 import { rsvpService } from '../services/rsvp.service';
 import { settingsService } from '../services/settings.service';
@@ -107,6 +108,8 @@ export const publicController = {
       return res.status(201).json({ id: 'ok', updated: false, guestName: input.guestName, attendanceStatus: input.attendanceStatus });
     }
     const result = await rsvpService.submit(input);
+    // Signing the guest in straight away gives them their pass (QR) and room details without a separate login.
+    setGuestSession(res, result.id);
     res.status(result.updated ? 200 : 201).json(result);
   },
 

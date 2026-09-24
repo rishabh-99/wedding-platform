@@ -2,6 +2,8 @@ import ExcelJS from 'exceljs';
 import {
   ATTENDANCE_LABELS,
   SIDE_LABELS,
+  TRANSPORT_STATUS_LABELS,
+  TRAVEL_MODE_LABELS,
   formatDateTime,
   localDateKey,
   type GuestSide,
@@ -211,6 +213,45 @@ export async function buildRsvpWorkbook(): Promise<ExcelJS.Workbook> {
   styleHeader(roomsSheet);
   roomsSheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: Math.max(1, roomRows.length + 1), column: 9 } };
   autoWidth(roomsSheet);
+
+  // Arrivals & pickups — for the hospitality team, in arrival order.
+  const travelSheet = wb.addWorksheet(sheetName('Arrivals & pickups', used));
+  travelSheet.columns = [
+    { header: 'Guest name', key: 'name' },
+    { header: 'Phone', key: 'phone' },
+    { header: 'Guests', key: 'guests' },
+    { header: 'Arrives', key: 'arrives' },
+    { header: 'By', key: 'mode' },
+    { header: 'Arrival details', key: 'arrivalDetails' },
+    { header: 'Pickup', key: 'pickup' },
+    { header: 'Departs', key: 'departs' },
+    { header: 'Departure details', key: 'departureDetails' },
+    { header: 'Drop', key: 'drop' },
+    { header: 'Rooms', key: 'rooms' },
+    { header: 'Notes', key: 'notes' },
+  ];
+  const travelling = rsvps
+    .filter((r) => r.attendanceStatus !== 'DECLINED' && (r.arrivalAt || r.departureAt || r.pickupNeeded || r.dropNeeded))
+    .sort((a, b) => (a.arrivalAt?.getTime() ?? Infinity) - (b.arrivalAt?.getTime() ?? Infinity));
+  for (const r of travelling) {
+    travelSheet.addRow({
+      name: r.guestName,
+      phone: r.phone,
+      guests: r.numberOfGuests,
+      arrives: r.arrivalAt ? formatDateTime(r.arrivalAt, tz) : '',
+      mode: r.arrivalMode ? TRAVEL_MODE_LABELS[r.arrivalMode] : '',
+      arrivalDetails: r.arrivalDetails ?? '',
+      pickup: r.pickupNeeded ? TRANSPORT_STATUS_LABELS[r.pickupStatus] : '',
+      departs: r.departureAt ? formatDateTime(r.departureAt, tz) : '',
+      departureDetails: r.departureDetails ?? '',
+      drop: r.dropNeeded ? TRANSPORT_STATUS_LABELS[r.dropStatus] : '',
+      rooms: r.rooms.map((room) => `${room.accommodation.name} ${room.roomNumber}`).join(', '),
+      notes: r.transportNotes ?? '',
+    });
+  }
+  styleHeader(travelSheet);
+  travelSheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: Math.max(1, travelling.length + 1), column: 12 } };
+  autoWidth(travelSheet);
 
   return wb;
 }

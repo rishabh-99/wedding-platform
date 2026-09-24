@@ -14,6 +14,33 @@ datasource db {
 enum Role {
   ADMIN
   EDITOR
+  COORDINATOR
+  HOSPITALITY
+  PHOTOGRAPHER
+}
+
+enum TravelMode {
+  TRAIN
+  FLIGHT
+  CAR
+  BUS
+  LOCAL
+  OTHER
+}
+
+enum TransportStatus {
+  NOT_NEEDED
+  PENDING
+  ASSIGNED
+  DONE
+}
+
+enum FollowUpStatus {
+  NEEDS_CALL
+  CALLED
+  ON_THE_WAY
+  NOT_REACHABLE
+  NOT_COMING
 }
 
 enum EventStatus {
@@ -41,6 +68,7 @@ enum MediaPurpose {
   BRANDING
   DRESSCODE
   STORY
+  PORTRAIT
 }
 
 enum LiveUpdateType {
@@ -73,6 +101,8 @@ model User {
   passwordHash String
   name         String
   role         Role       @default(ADMIN)
+  phone        String?
+  isActive     Boolean    @default(true)
   lastLoginAt  DateTime?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
@@ -164,6 +194,8 @@ model Event {
   albums               Album[]
   rsvpEvents           RsvpEvent[]
   contacts             Contact[]
+  checkIns             CheckIn[]
+  followUps            FollowUp[]
 
   @@index([isPublished, startDateTime])
   @@index([displayOrder])
@@ -209,12 +241,15 @@ model MediaAsset {
   displayOrder     Int          @default(0)
   isPublished      Boolean      @default(true)
   uploadedById     String?
+  /// Set when a guest uploaded this to the shared album (moderated before publishing).
+  uploadedByRsvpId String?
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
   liveUpdates       LiveUpdate[]
   guestbookMessages GuestbookMessage[]
   storySections     StorySection[]
+  portraits         GuestPortrait[]
   settingsLogo      WeddingSettings[] @relation("SettingsLogo")
   settingsOgImage   WeddingSettings[] @relation("SettingsOgImage")
 
@@ -262,6 +297,29 @@ model Rsvp {
   events            RsvpEvent[]
   rooms             RoomAssignment[]
 
+  /// The family's single QR code: /q/<qrToken> (check-in + photographer coverage).
+  qrToken           String            @unique @default(dbgenerated("gen_random_uuid()::text"))
+
+  arrivalMode       TravelMode?
+  arrivalAt         DateTime?
+  arrivalDetails    String?
+  pickupNeeded      Boolean           @default(false)
+  pickupStatus      TransportStatus   @default(NOT_NEEDED)
+  departureMode     TravelMode?
+  departureAt       DateTime?
+  departureDetails  String?
+  dropNeeded        Boolean           @default(false)
+  dropStatus        TransportStatus   @default(NOT_NEEDED)
+  /// Hospitality team notes: driver, vehicle, phone…
+  transportNotes    String?
+
+  checkIns          CheckIn[]
+  followUps         FollowUp[]
+  portraits         GuestPortrait[]
+  pushSubscriptions PushSubscription[]
+
+  @@index([arrivalAt])
+  @@index([departureAt])
   @@index([attendanceStatus])
   @@index([side])
   @@index([submittedAt])
@@ -277,6 +335,79 @@ model RsvpEvent {
 
   @@id([rsvpId, eventId])
   @@index([eventId])
+}
+
+/// A family (RSVP party) arriving at a celebration — via QR scan or manual check-in.
+model CheckIn {
+  id              String   @id @default(cuid())
+  rsvpId          String
+  rsvp            Rsvp     @relation(fields: [rsvpId], references: [id], onDelete: Cascade)
+  eventId         String
+  event           Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  /// How many of the party have arrived.
+  count           Int      @default(1)
+  method          String   @default("MANUAL")
+  checkedInByName String?
+  checkedInAt     DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([rsvpId, eventId])
+  @@index([eventId])
+}
+
+/// Coordinator follow-up for a family that has not arrived yet ("needs a call").
+model FollowUp {
+  id            String         @id @default(cuid())
+  rsvpId        String
+  rsvp          Rsvp           @relation(fields: [rsvpId], references: [id], onDelete: Cascade)
+  eventId       String
+  event         Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  status        FollowUpStatus
+  note          String?
+  updatedByName String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@unique([rsvpId, eventId])
+  @@index([eventId])
+}
+
+/// The photographer's "photo of the day" for a family (one per local calendar day).
+model GuestPortrait {
+  id           String      @id @default(cuid())
+  rsvpId       String
+  rsvp         Rsvp        @relation(fields: [rsvpId], references: [id], onDelete: Cascade)
+  /// Local date in the wedding timezone, YYYY-MM-DD.
+  day          String
+  mediaAssetId String?
+  mediaAsset   MediaAsset? @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
+  method       String      @default("MANUAL")
+  takenByName  String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@unique([rsvpId, day])
+  @@index([day])
+}
+
+/// Web Push subscription for live-update notifications.
+model PushSubscription {
+  id            String    @id @default(cuid())
+  endpoint      String    @unique
+  p256dh        String
+  auth          String
+  rsvpId        String?
+  rsvp          Rsvp?     @relation(fields: [rsvpId], references: [id], onDelete: SetNull)
+  userAgent     String?
+  createdAt     DateTime  @default(now())
+  lastSuccessAt DateTime?
+}
+
+/// Small persistent key/value store (e.g. generated Web Push VAPID keys).
+model KeyValue {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }
 
 /// A hotel / guest house / venue block where guests are accommodated.

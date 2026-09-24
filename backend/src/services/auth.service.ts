@@ -37,6 +37,7 @@ export const authService = {
     const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
     const ok = await verifyPassword(password, user?.passwordHash ?? DUMMY_HASH);
     if (!user || !ok) throw unauthorized('Incorrect email or password');
+    if (!user.isActive) throw unauthorized('This account has been deactivated. Ask an admin to re-enable it.');
     await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     const csrfToken = randomBytes(24).toString('base64url');
     const claims: SessionClaims = { sub: user.id, role: user.role, csrf: csrfToken, pv: passwordVersion(user.passwordHash) };
@@ -52,7 +53,7 @@ export const authService = {
       throw unauthorized('Your session has expired. Please sign in again.');
     }
     const user = await prisma.user.findUnique({ where: { id: claims.sub } });
-    if (!user || passwordVersion(user.passwordHash) !== claims.pv) {
+    if (!user || !user.isActive || passwordVersion(user.passwordHash) !== claims.pv) {
       throw unauthorized('Your session has expired. Please sign in again.');
     }
     return { user: { id: user.id, email: user.email, name: user.name, role: user.role }, claims };

@@ -1,10 +1,20 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
+import type { ReactElement } from 'react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { RsvpInput, RsvpSubmitResult } from '@wedding/shared';
 import { RsvpForm } from '../components/rsvp/RsvpForm';
 import { ApiError } from '../services/api';
 import { EVENTS, TZ } from './fixtures';
+
+const render = (ui: ReactElement) =>
+  rtlRender(
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter>{ui}</MemoryRouter>
+    </QueryClientProvider>,
+  );
 
 describe('RsvpForm', () => {
   it('shows validation messages and does not submit invalid input', async () => {

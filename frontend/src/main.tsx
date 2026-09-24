@@ -10,9 +10,13 @@ import '@fontsource/manrope/600.css';
 import '@fontsource/cinzel/400.css';
 import './styles/index.css';
 import App from './App';
+import { registerServiceWorker } from './hooks/usePush';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
   </StrictMode>,
 );
+
+// Service worker for live-update push notifications (it does not cache the site).
+window.addEventListener('load', () => void registerServiceWorker());

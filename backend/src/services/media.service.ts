@@ -103,6 +103,8 @@ function keyDirFor(purpose: MediaPurpose, albumSlug: string | null, id: string):
       return StorageKeys.dresscode(id);
     case 'STORY':
       return StorageKeys.story(id);
+    case 'PORTRAIT':
+      return StorageKeys.portrait(id);
   }
 }
 

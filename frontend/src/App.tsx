@@ -23,6 +23,8 @@ const VenuesPage = lazy(() => pages().then((m) => ({ default: m.VenuesPage })));
 const TravelPage = lazy(() => pages().then((m) => ({ default: m.TravelPage })));
 const DressCodePage = lazy(() => pages().then((m) => ({ default: m.DressCodePage })));
 const FaqPage = lazy(() => pages().then((m) => ({ default: m.FaqPage })));
+const PassPage = lazy(() => import('./pages/PassPage'));
+const QrLandingPage = lazy(() => import('./pages/QrLandingPage'));
 const NotFoundPage = lazy(() => pages().then((m) => ({ default: m.NotFoundPage })));
 
 // The admin portal is a separate bundle — never downloaded by guests.
@@ -77,6 +79,8 @@ export default function App() {
                   <Route path="travel" element={<TravelPage />} />
                   <Route path="dress-code" element={<DressCodePage />} />
                   <Route path="faq" element={<FaqPage />} />
+                  <Route path="pass" element={<PassPage />} />
+                  <Route path="q/:token" element={<QrLandingPage />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Route>
               </Routes>

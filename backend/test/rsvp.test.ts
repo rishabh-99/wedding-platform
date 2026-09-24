@@ -155,7 +155,7 @@ describe('RSVP admin', () => {
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(res.body as Parameters<typeof wb.xlsx.load>[0]);
     const names = wb.worksheets.map((w) => w.name);
-    expect(names).toEqual(['All RSVPs', 'Summary', 'Engagement', 'Haldi & Mehendi', 'Sangeet', 'Wedding', 'Rooms']);
+    expect(names).toEqual(['All RSVPs', 'Summary', 'Engagement', 'Haldi & Mehendi', 'Sangeet', 'Wedding', 'Rooms', 'Arrivals & pickups']);
 
     const all = wb.getWorksheet('All RSVPs')!;
     expect(all.getRow(1).getCell(1).value).toBe('Guest name');

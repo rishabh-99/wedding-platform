@@ -14,6 +14,7 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { apiLimiter } from './middleware/rateLimit';
 import { broker } from './realtime/sseBroker';
 import { adminRouter } from './routes/admin.routes';
+import { guestRouter, pushRouter } from './routes/guest.routes';
 import { publicRouter } from './routes/public.routes';
 import { settingsService } from './services/settings.service';
 import { LocalStorageProvider, storage } from './storage';
@@ -104,6 +105,8 @@ export function createApp(): Express {
 
   app.use('/api', (req, res, next) => (req.path === '/live/stream' ? next() : apiLimiter(req, res, next)));
   app.use('/api/admin', adminRouter);
+  app.use('/api/guest', guestRouter);
+  app.use('/api/push', pushRouter);
   app.use('/api', publicRouter);
   app.use('/api', notFoundHandler);
 

@@ -83,6 +83,12 @@ function AlbumPanel({ album, onEdit }: { album: AlbumDTO; onEdit: () => void }) 
           </div>
         }
       >
+        {album.slug === 'guest-moments' && (
+          <p className="mb-3 rounded-sm bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            Guests share photos here from their guest pass. They stay hidden until you press <strong>Publish</strong> on each one
+            {items.some((m) => !m.isPublished) && ` — ${items.filter((m) => !m.isPublished).length} awaiting approval`}.
+          </p>
+        )}
         <Uploader purpose="GALLERY" albumId={album.id} eventId={album.eventId} />
       </Card>
       {media.isLoading ? (

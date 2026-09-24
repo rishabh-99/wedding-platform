@@ -21,3 +21,4 @@ export const loginLimiter = make(15 * 60_000, 10);
 export const rsvpLimiter = make(10 * 60_000, 20);
 export const guestbookLimiter = make(10 * 60_000, 10);
 export const uploadLimiter = make(10 * 60_000, 300);
+export const guestLoginLimiter = make(10 * 60_000, 40);

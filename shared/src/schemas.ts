@@ -333,7 +333,7 @@ export const mediaListQuerySchema = z.object({
   type: z.enum(['IMAGE', 'VIDEO', 'DOCUMENT']).optional(),
   eventId: z.string().max(64).optional(),
   albumId: z.string().max(64).optional(),
-  purpose: z.enum(['GALLERY', 'LIVE', 'GUESTBOOK', 'BRANDING', 'DRESSCODE', 'STORY']).optional(),
+  purpose: z.enum(['GALLERY', 'LIVE', 'GUESTBOOK', 'BRANDING', 'DRESSCODE', 'STORY', 'PORTRAIT']).optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(200).default(60),
 });

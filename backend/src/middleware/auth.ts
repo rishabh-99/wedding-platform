@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import type { Role, SessionUser } from '@wedding/shared';
+import { can, type Permission, type Role, type SessionUser } from '@wedding/shared';
 import { AppError, forbidden, unauthorized } from '../lib/errors';
 import { SESSION_COOKIE, authService, safeEqual, type SessionClaims } from '../services/auth.service';
 
@@ -40,6 +40,15 @@ export function requireCsrf(req: Request, _res: Response, next: NextFunction) {
     return next(new AppError(403, 'CSRF_FAILED', 'Your session token is invalid. Please refresh the page.'));
   }
   next();
+}
+
+/** Authorisation by capability (see ROLE_PERMISSIONS in @wedding/shared): any listed permission grants access. */
+export function requirePermission(...permissions: Permission[]) {
+  return (req: Request, _res: Response, next: NextFunction) => {
+    if (!req.user) return next(unauthorized());
+    if (!permissions.some((p) => can(req.user!.role, p))) return next(forbidden());
+    next();
+  };
 }
 
 /** Authorisation: restrict to the given roles. */

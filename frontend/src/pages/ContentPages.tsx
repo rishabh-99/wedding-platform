@@ -11,6 +11,7 @@ import { RsvpForm } from '../components/rsvp/RsvpForm';
 import { DressCodeSection, FaqSection, StorySection, TravelSection, VenuesSection } from '../components/sections/ContentSections';
 import { EmptyState, ErrorState, LiveBadge, LoadingBlock, SectionHeading } from '../components/ui/primitives';
 import { useClock } from '../hooks/useClock';
+import { NotificationToggle } from '../components/push/PushPrompt';
 import { useSchedule } from '../hooks/useSchedule';
 import { useLiveConnection } from '../layouts/LiveContext';
 import { useFaq, useGuestbook, useLiveUpdates, useSettings, useStory, useTravel, useVenues } from '../services/queries';
@@ -57,6 +58,7 @@ export function NowPage() {
               </div>
             </div>
           )}
+          {schedule.phase !== 'archive' && <NotificationToggle className="mx-auto mt-10 max-w-xl" />}
         </div>
       </section>
       <section className="section border-t border-gold/20 pt-12">

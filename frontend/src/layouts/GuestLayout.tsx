@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Concierge } from '../components/concierge/Concierge';
+import { PushPrompt } from '../components/push/PushPrompt';
 import { ErrorBoundary, LoadingBlock } from '../components/ui/primitives';
 import { useSettings } from '../services/queries';
 import { LiveProvider, useLiveConnection } from './LiveContext';
@@ -82,6 +83,7 @@ export function GuestLayout() {
       <Footer />
       {settings?.sections.concierge !== false && <Concierge />}
       <MobileNav />
+      <PushPrompt />
       <ConnectionNotice />
       {Simulator && (
         <Suspense fallback={null}>

@@ -50,6 +50,12 @@ const schema = z.object({
   SEED_ADMIN_PASSWORD: z.string().default('ChangeMe!2026'),
   SEED_ON_EMPTY: bool.default(true),
 
+  // Web Push (optional — generated automatically and stored in the database if not set)
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().optional(),
+  PUSH_ENABLED: bool.default(true),
+
   FRONTEND_DIST: z.string().optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   ALLOW_TIME_TRAVEL: bool.optional(),

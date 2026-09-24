@@ -1,7 +1,7 @@
-import { lazy, Suspense, useEffect, useState, type FormEvent } from 'react';
+import { lazy, Suspense, useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import type { SessionUser } from '@wedding/shared';
+import { can, ROLE_LABELS, type Permission, type Role, type SessionUser } from '@wedding/shared';
 import { ApiError, api, setCsrfToken } from '../services/api';
 import { LoadingBlock } from '../components/ui/primitives';
 import { adminKeys, useMe } from './adminApi';
@@ -24,24 +24,46 @@ const Settings = lazy(() => import('./pages/SettingsPage'));
 const MediaLibrary = lazy(() => import('./pages/MediaLibraryPage'));
 const Backups = lazy(() => import('./pages/BackupsPage'));
 const Contacts = lazy(() => import('./pages/ContactsPage'));
+const Team = lazy(() => import('./pages/TeamPage'));
+const CheckIn = lazy(() => import('./pages/CheckInPage'));
+const Portraits = lazy(() => import('./pages/PortraitsPage'));
+const Arrivals = lazy(() => import('./pages/ArrivalsPage'));
 
-const NAV = [
-  { to: '', label: 'Dashboard' },
-  { to: 'events', label: 'Events' },
-  { to: 'venues', label: 'Venues' },
-  { to: 'live', label: 'Live Updates' },
-  { to: 'gallery', label: 'Gallery' },
-  { to: 'rsvps', label: 'RSVPs & Rooms', adminOnly: true },
-  { to: 'guestbook', label: 'Guestbook' },
-  { to: 'story', label: 'Wedding Story' },
-  { to: 'dress-code', label: 'Dress Code' },
-  { to: 'travel', label: 'Travel & Stay' },
-  { to: 'faq', label: 'FAQ' },
-  { to: 'contacts', label: 'Contacts' },
-  { to: 'settings', label: 'Settings' },
-  { to: 'media', label: 'Media Library' },
-  { to: 'backups', label: 'Backups', adminOnly: true },
+/** Sidebar items; each role only sees what it is allowed to use (enforced again by the API). */
+const NAV: { to: string; label: string; perm: Permission; group?: string }[] = [
+  { to: '', label: 'Dashboard', perm: 'content' },
+  { to: 'checkin', label: 'Check-in', perm: 'checkin', group: 'On the day' },
+  { to: 'portraits', label: 'Photo of the day', perm: 'portraits', group: 'On the day' },
+  { to: 'arrivals', label: 'Arrivals & pickups', perm: 'arrivals', group: 'On the day' },
+  { to: 'live', label: 'Live Updates', perm: 'live', group: 'On the day' },
+  { to: 'rsvps', label: 'RSVPs & Rooms', perm: 'guests', group: 'Guests' },
+  { to: 'guestbook', label: 'Guestbook', perm: 'guestbook', group: 'Guests' },
+  { to: 'contacts', label: 'Contacts', perm: 'contacts', group: 'Guests' },
+  { to: 'events', label: 'Events', perm: 'events', group: 'Website' },
+  { to: 'venues', label: 'Venues', perm: 'events', group: 'Website' },
+  { to: 'gallery', label: 'Gallery', perm: 'gallery', group: 'Website' },
+  { to: 'story', label: 'Wedding Story', perm: 'content', group: 'Website' },
+  { to: 'dress-code', label: 'Dress Code', perm: 'events', group: 'Website' },
+  { to: 'travel', label: 'Travel & Stay', perm: 'content', group: 'Website' },
+  { to: 'faq', label: 'FAQ', perm: 'content', group: 'Website' },
+  { to: 'media', label: 'Media Library', perm: 'gallery', group: 'Website' },
+  { to: 'team', label: 'Team', perm: 'team', group: 'Admin' },
+  { to: 'settings', label: 'Settings', perm: 'settings', group: 'Admin' },
+  { to: 'backups', label: 'Backups', perm: 'backups', group: 'Admin' },
 ];
+
+/** Where each role lands after signing in ('' = dashboard). */
+function homeFor(role: Role): string {
+  if (can(role, 'content')) return '';
+  if (can(role, 'portraits')) return 'portraits';
+  if (can(role, 'arrivals')) return 'arrivals';
+  if (can(role, 'checkin')) return 'checkin';
+  return NAV.find((n) => can(role, n.perm))?.to ?? '';
+}
+
+function Guard({ user, perm, children }: { user: SessionUser; perm: Permission; children: ReactNode }) {
+  return can(user.role, perm) ? <>{children}</> : <Navigate to="/admin" replace />;
+}
 
 export default function AdminApp() {
   useEffect(() => {
@@ -104,19 +126,23 @@ function AdminLayout({ user }: { user: SessionUser }) {
     }
   };
 
-  const items = NAV.filter((n) => !n.adminOnly || user.role === 'ADMIN');
+  const items = NAV.filter((n) => can(user.role, n.perm));
+  const home = homeFor(user.role);
 
   return (
     <div className="lg:grid lg:min-h-screen lg:grid-cols-[15rem_1fr]">
       <aside className={`fixed inset-y-0 left-0 z-40 w-64 transform overflow-y-auto border-r border-gold/30 bg-ivory transition-transform lg:static lg:w-auto lg:translate-x-0 ${navOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="border-b border-gold/25 px-5 py-5">
           <p className="font-label text-[0.62rem] uppercase tracking-label text-gold-deep">Wedding</p>
-          <p className="font-display text-2xl text-maroon">Admin</p>
+          <p className="font-display text-2xl text-maroon">{user.role === 'ADMIN' ? 'Admin' : ROLE_LABELS[user.role]}</p>
         </div>
         <nav aria-label="Admin" className="px-2 py-3">
           <ul>
-            {items.map((item) => (
+            {items.map((item, i) => (
               <li key={item.to}>
+                {item.group && item.group !== items[i - 1]?.group && (
+                  <p className="mt-3 px-3 pb-1 text-[0.62rem] font-semibold uppercase tracking-wider text-gold-deep">{item.group}</p>
+                )}
                 <NavLink
                   to={`/admin${item.to ? `/${item.to}` : ''}`}
                   end={item.to === ''}
@@ -143,7 +169,7 @@ function AdminLayout({ user }: { user: SessionUser }) {
         <p className="px-5 pb-5 text-xs text-ink-muted">
           Signed in as {user.name}
           <br />
-          {user.email} · {user.role.toLowerCase()}
+          {user.email} · {ROLE_LABELS[user.role]}
         </p>
       </aside>
       {navOpen && <button type="button" aria-label="Close menu" className="fixed inset-0 z-30 bg-ink/30 lg:hidden" onClick={() => setNavOpen(false)} />}
@@ -158,21 +184,25 @@ function AdminLayout({ user }: { user: SessionUser }) {
         <main className="mx-auto max-w-6xl px-4 py-6 sm:px-8 sm:py-8">
           <Suspense fallback={<LoadingBlock lines={5} />}>
             <Routes>
-              <Route index element={<Dashboard />} />
-              <Route path="events" element={<Events />} />
-              <Route path="venues" element={<Venues />} />
-              <Route path="live" element={<Live />} />
-              <Route path="gallery" element={<Gallery />} />
-              <Route path="rsvps" element={<Rsvps />} />
-              <Route path="guestbook" element={<Guestbook />} />
-              <Route path="story" element={<Story />} />
-              <Route path="dress-code" element={<DressCode />} />
-              <Route path="travel" element={<Travel />} />
-              <Route path="faq" element={<Faq />} />
-              <Route path="settings" element={<Settings user={user} />} />
-              <Route path="media" element={<MediaLibrary />} />
-              <Route path="backups" element={<Backups />} />
-              <Route path="contacts" element={<Contacts />} />
+              <Route index element={home ? <Navigate to={`/admin/${home}`} replace /> : <Dashboard />} />
+              <Route path="checkin" element={<Guard user={user} perm="checkin"><CheckIn /></Guard>} />
+              <Route path="portraits" element={<Guard user={user} perm="portraits"><Portraits /></Guard>} />
+              <Route path="arrivals" element={<Guard user={user} perm="arrivals"><Arrivals /></Guard>} />
+              <Route path="events" element={<Guard user={user} perm="events"><Events /></Guard>} />
+              <Route path="venues" element={<Guard user={user} perm="events"><Venues /></Guard>} />
+              <Route path="live" element={<Guard user={user} perm="live"><Live /></Guard>} />
+              <Route path="gallery" element={<Guard user={user} perm="gallery"><Gallery /></Guard>} />
+              <Route path="rsvps" element={<Guard user={user} perm="guests"><Rsvps user={user} /></Guard>} />
+              <Route path="guestbook" element={<Guard user={user} perm="guestbook"><Guestbook /></Guard>} />
+              <Route path="story" element={<Guard user={user} perm="content"><Story /></Guard>} />
+              <Route path="dress-code" element={<Guard user={user} perm="events"><DressCode /></Guard>} />
+              <Route path="travel" element={<Guard user={user} perm="content"><Travel /></Guard>} />
+              <Route path="faq" element={<Guard user={user} perm="content"><Faq /></Guard>} />
+              <Route path="settings" element={<Guard user={user} perm="settings"><Settings user={user} /></Guard>} />
+              <Route path="media" element={<Guard user={user} perm="gallery"><MediaLibrary /></Guard>} />
+              <Route path="backups" element={<Guard user={user} perm="backups"><Backups /></Guard>} />
+              <Route path="contacts" element={<Guard user={user} perm="contacts"><Contacts /></Guard>} />
+              <Route path="team" element={<Guard user={user} perm="team"><Team user={user} /></Guard>} />
               <Route path="*" element={<Navigate to="/admin" replace />} />
             </Routes>
           </Suspense>
@@ -200,7 +230,7 @@ function LoginPage() {
       setCsrfToken(res.csrfToken);
       qc.setQueryData(adminKeys.me, res);
       const from = (location.state as { from?: string } | null)?.from;
-      navigate(from && from.startsWith('/admin') && from !== '/admin/login' ? from : '/admin', { replace: true });
+      navigate(from && (from.startsWith('/q/') || (from.startsWith('/admin') && from !== '/admin/login')) ? from : '/admin', { replace: true });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Sign in failed');
     } finally {
@@ -212,7 +242,7 @@ function LoginPage() {
     <div className="flex min-h-screen items-center justify-center px-4">
       <form onSubmit={submit} className="w-full max-w-sm border border-gold/40 bg-ivory px-6 py-8 shadow-paper" noValidate>
         <p className="font-label text-[0.62rem] uppercase tracking-label text-gold-deep">Wedding</p>
-        <h1 className="font-display text-3xl text-maroon">Admin sign in</h1>
+        <h1 className="font-display text-3xl text-maroon">Team sign in</h1>
         <div className="mt-6 space-y-4">
           <FieldRow label="Email" htmlFor="email">
             <TextInput id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
@@ -231,7 +261,7 @@ function LoginPage() {
         </button>
         {import.meta.env.DEV && (
           <p className="mt-5 border-t border-gold/20 pt-4 text-xs text-ink-muted">
-            Development account: <code>admin@wedding.local</code> / <code>ChangeMe!2026</code>. Change it before going live.
+            Development accounts (password <code>ChangeMe!2026</code>): <code>admin@</code>, <code>coordinator@</code>, <code>hospitality@</code>, <code>photographer@</code> and <code>editor@wedding.local</code>. Change them before going live.
           </p>
         )}
       </form>

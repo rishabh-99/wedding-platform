@@ -53,7 +53,17 @@ The first start builds the image (a few minutes), then automatically:
 | Admin portal | http://localhost:3000/admin |
 | API health | http://localhost:4000/api/health |
 
-**Development admin login** — `admin@wedding.local` / `ChangeMe!2026`
+**Development logins** — password `ChangeMe!2026` for all of them:
+
+| Email | Role | Lands on |
+|---|---|---|
+| `admin@wedding.local` | Admin | Dashboard (everything) |
+| `coordinator@wedding.local` | Event coordinator | Check-in |
+| `hospitality@wedding.local` | Hospitality | Arrivals & pickups |
+| `photographer@wedding.local` | Photographer | Photo of the day |
+| `editor@wedding.local` | Content editor | Dashboard (website content) |
+
+**Guest pass** — http://localhost:3000/pass, sign in with any seeded RSVP phone number, e.g. `98100 11001`.
 
 > ⚠️ These credentials exist **only** in development. Production refuses to seed with the default password — you choose a real one in `.env`.
 
@@ -165,6 +175,8 @@ Development needs none. For production, copy `.env.example` to `.env` — every 
 | `S3_PUBLIC_BASE_URL` | | optional CloudFront URL instead of presigned URLs |
 | `EMAIL_DRIVER` | | `log` or `smtp` (+ `SMTP_*`, `EMAIL_FROM`, `ADMIN_NOTIFY_EMAIL`) for RSVP notifications |
 | `BACKUP_S3_URI` | | e.g. `s3://my-wedding-backups/db` for nightly dumps |
+| `PUSH_ENABLED` | | `true` (default) sends phone notifications for live updates |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | | optional Web Push keys (`npx web-push generate-vapid-keys`); generated and stored in the database if empty |
 
 The app **refuses to start in production** with a missing/default `JWT_SECRET`, or with `STORAGE_DRIVER=s3` but no bucket. Nothing in `.env` is ever sent to the browser — the frontend only receives public settings.
 
@@ -475,11 +487,48 @@ The API accepts the same parameter on `/api/schedule?now=…` outside production
 3. A party can hold several rooms, even across venues. Allotting a room that is already taken is allowed (families share) but you are warned who else is in it.
 4. In the **Guests** tab, the *Rooms* column / button does the same per RSVP, and the filter "Needs a room" / "Staying at …" narrows the list.
 
-Editors (not only admins) can manage rooms, so the hospitality team can have their own EDITOR logins.
+Admins and the Hospitality role can manage rooms. Give the hospitality team their own logins under *Team*.
 
 **Event manager contacts** — Admin → *Contacts*: name, role, phone, WhatsApp, email, optional celebration. Public contacts appear to guests in *Need a hand? → Need help?* and on the celebration's page (event-specific managers first); private ones (e.g. vendors) are for the team only.
 
-**RSVP Excel** — Admin → RSVPs → *Download RSVP Excel*: sheets *All RSVPs, Summary, Engagement, Haldi & Mehendi, Sangeet, Wedding, Rooms* (the final day's ceremonies grouped; Rooms lists every allotted room by hotel), with side and room columns, filters, frozen headers, readable IST dates and guest totals. The Summary sheet includes the bride's/groom's side split and rooms still needed. (Excel does not allow `/` in sheet names, hence "Haldi & Mehendi".)
+**Team & roles** — Admin → *Team*: add a sign-in for each helper and pick a role. Each role only sees its own screens (the API enforces the same rules):
+
+| Role | Can use |
+|---|---|
+| Admin | Everything, including Team, Settings and Backups |
+| Content editor | Live updates, gallery, story, travel, FAQ, guestbook, contacts |
+| Event coordinator | Check-in and follow-up calls, live updates, guest list (read-only) |
+| Hospitality | Guest list, rooms, arrivals & pickups, check-in, contacts |
+| Photographer | Photo of the day, gallery uploads, live photo posts |
+
+Deactivate someone to sign them out everywhere while keeping their history. There must always be one active admin.
+
+**Guest pass** (`/pass`) — every family that RSVPs gets a pass. They sign in with the phone number they RSVP’d with (no password or OTP, since nothing on it is private); submitting the RSVP signs them in automatically. The pass shows:
+
+- **one QR code for the whole family**, with a *Save to phone* button
+- their room(s), or “not allotted yet”, plus hospitality contacts to call or WhatsApp. These are your public Contacts that aren’t tied to one celebration, plus any whose role or name mentions hospitality, room, stay, travel or transport.
+- their celebrations, with a tick once they’ve checked in
+- **their journey**: arrival and departure mode, time and train/flight, and whether they need a pickup or drop. The pickup/drop status updates as hospitality arranges it.
+- live-update notifications on/off
+- **photos of the day**, which appear only after the wedding
+- **shared album**: guests upload photos. They land in the *Guest moments* gallery album, hidden until you press *Publish*.
+
+**Scanning passes** — the QR holds a link (`https://<domain>/q/<code>`). Staff can scan it either way:
+
+- with the **Scan pass** button on the Check-in or Photo of the day screen (in-app camera)
+- with the **phone’s normal camera app**, which opens the link. If a team member is signed in on that phone, they get the actions for their role right away (check in with a head-count, take/tick the photo of the day). A family opening their own code goes to their pass.
+
+The in-app camera needs HTTPS (it works on your real domain; on `localhost` use the phone-camera route or tick manually).
+
+**Check-in** (coordinators & hospitality) — pick the celebration (defaults to the current or next one). The screen shows families and guests arrived vs expected. Filters: *Not arrived*, *To call* (not arrived and not yet reached), *Arrived* and *All*. For each family: Call / WhatsApp buttons, check in with a head-count (±), undo, and a follow-up status (*Needs a call, Called, On the way, Not reachable, Not coming*) with a note. It refreshes every 15 seconds, so several people can work the gate together. Families who weren’t on the RSVP for that celebration can still be checked in.
+
+**Photo of the day** (photographer) — one photo per family per celebration day. Pick the day, then either scan the family’s pass or find them in the list. *Take photo* opens the phone camera and uploads straight away; *Tick as covered* records them without a photo, e.g. if the photos come off a DSLR later. The progress bar shows coverage, and *Still to photograph* lists who’s left. Families see their photos on their pass once the wedding is over.
+
+**Arrivals & pickups** (hospitality) — every family’s arrival and departure, grouped by day and sorted by time. Tick *Needs pickup / drop only* to see just those. Change the pickup or drop status inline (*To arrange → Driver assigned → Done*), or use *Edit* for the full journey and private notes (driver, vehicle). Guests see the status but never the notes. The Excel export has an *Arrivals & pickups* sheet.
+
+**Phone notifications** — the first time someone visits, a small card suggests turning on live updates, and they can toggle it later on their pass or the *Now* page. Every live update you publish is then pushed to their phone as a notification. Android and desktop browsers work directly. On iPhone (iOS 16.4+), Apple only allows it after *Share → Add to Home Screen*, and the card explains this. Push needs HTTPS in production (it works on `localhost` in development).
+
+**RSVP Excel** — Admin → RSVPs → *Download RSVP Excel*: sheets *All RSVPs, Summary, Engagement, Haldi & Mehendi, Sangeet, Wedding, Rooms, Arrivals & pickups* (the final day's ceremonies grouped; Rooms lists every allotted room by hotel), with side and room columns, filters, frozen headers, readable IST dates and guest totals. The Summary sheet includes the bride's/groom's side split and rooms still needed. (Excel does not allow `/` in sheet names, hence "Haldi & Mehendi".)
 
 ---
 

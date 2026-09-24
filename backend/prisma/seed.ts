@@ -441,6 +441,34 @@ async function seedDemoData() {
     },
   });
   const attending = createdRsvps.filter((r) => r.status !== 'DECLINED');
+
+  // Sample journeys for the hospitality arrivals & pickups screen.
+  const journeys: { arrivalMode: 'TRAIN' | 'FLIGHT' | 'CAR'; arrivalAt: string; arrivalDetails: string; pickup: boolean; departureAt: string; departureDetails: string; drop: boolean }[] = [
+    { arrivalMode: 'TRAIN', arrivalAt: '2026-12-02T14:35', arrivalDetails: '12034 Shatabdi · Kanpur Central', pickup: true, departureAt: '2026-12-05T06:10', departureDetails: '12033 Shatabdi', drop: true },
+    { arrivalMode: 'FLIGHT', arrivalAt: '2026-12-02T18:20', arrivalDetails: '6E 2105 · Lucknow (LKO)', pickup: true, departureAt: '2026-12-05T13:45', departureDetails: '6E 2106 · LKO', drop: true },
+    { arrivalMode: 'CAR', arrivalAt: '2026-12-03T07:30', arrivalDetails: 'Driving from Lucknow', pickup: false, departureAt: '2026-12-04T20:00', departureDetails: 'Driving back', drop: false },
+    { arrivalMode: 'TRAIN', arrivalAt: '2026-12-02T22:05', arrivalDetails: '12004 Lucknow Shatabdi', pickup: true, departureAt: '2026-12-05T09:30', departureDetails: 'Train, TBC', drop: false },
+  ];
+  for (const [i, j] of journeys.entries()) {
+    const r = attending[i];
+    if (!r) break;
+    await prisma.rsvp.update({
+      where: { id: r.id },
+      data: {
+        arrivalMode: j.arrivalMode,
+        arrivalAt: at(j.arrivalAt),
+        arrivalDetails: j.arrivalDetails,
+        pickupNeeded: j.pickup,
+        pickupStatus: j.pickup ? (i === 0 ? 'ASSIGNED' : 'PENDING') : 'NOT_NEEDED',
+        departureMode: j.arrivalMode,
+        departureAt: at(j.departureAt),
+        departureDetails: j.departureDetails,
+        dropNeeded: j.drop,
+        dropStatus: j.drop ? 'PENDING' : 'NOT_NEEDED',
+        transportNotes: i === 0 ? 'Driver: Ramesh (placeholder) · white Innova' : null,
+      },
+    });
+  }
   const checkIn = at('2026-12-02T14:00');
   const checkOut = at('2026-12-05T11:00');
   for (const [i, r] of attending.slice(0, 9).entries()) {
@@ -492,9 +520,26 @@ async function seedDemoData() {
   }
 }
 
+/** Development only: one login per staff role (same dev password), added even to an existing dev database. */
+const DEV_STAFF = [
+  { email: 'coordinator@wedding.local', name: 'Event Coordinator (demo)', role: 'COORDINATOR' as const },
+  { email: 'hospitality@wedding.local', name: 'Hospitality Desk (demo)', role: 'HOSPITALITY' as const },
+  { email: 'photographer@wedding.local', name: 'Photographer (demo)', role: 'PHOTOGRAPHER' as const },
+  { email: 'editor@wedding.local', name: 'Content Editor (demo)', role: 'EDITOR' as const },
+];
+
+async function ensureDevStaff() {
+  if (env.isProd) return;
+  const passwordHash = await hashPassword(env.SEED_ADMIN_PASSWORD);
+  for (const s of DEV_STAFF) {
+    await prisma.user.upsert({ where: { email: s.email }, update: {}, create: { ...s, passwordHash } });
+  }
+}
+
 async function main() {
   const existing = await prisma.weddingSettings.findUnique({ where: { id: 'default' } });
   if (existing) {
+    await ensureDevStaff();
     console.log('✓ Database already seeded — skipping.');
     return;
   }
@@ -504,11 +549,14 @@ async function main() {
     console.log('Seeding development demo data (sample RSVPs, photographs, live posts, guestbook)…');
     await seedDemoData();
   }
+  await ensureDevStaff();
   console.log('✓ Seed complete.');
   if (!env.isProd) {
     console.log('\n  ┌───────────────────────────────────────────────────────────┐');
     console.log(`  │ DEVELOPMENT admin:  ${env.SEED_ADMIN_EMAIL.padEnd(38)}│`);
     console.log(`  │ Password:           ${env.SEED_ADMIN_PASSWORD.padEnd(38)}│`);
+    console.log('  │ Also: coordinator@ / hospitality@ / photographer@ /       │');
+    console.log('  │       editor@wedding.local (same password, demo roles)    │');
     console.log('  │ Change these before deploying to production!              │');
     console.log('  └───────────────────────────────────────────────────────────┘\n');
   }
