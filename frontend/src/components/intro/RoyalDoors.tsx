@@ -89,7 +89,7 @@ export function RoyalDoors({ coupleName1, coupleName2, onComplete }: RoyalDoorsP
           role="dialog"
           aria-modal="true"
           aria-label="Welcome"
-          className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden bg-ivory"
+          className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-ivory pb-[env(safe-area-inset-bottom,0px)] pt-[env(safe-area-inset-top,0px)]"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, scale: reduce ? 1 : 1.04, transition: { duration: reduce ? 0.3 : 0.7, ease: 'easeOut' } }}
         >
@@ -125,16 +125,21 @@ export function RoyalDoors({ coupleName1, coupleName2, onComplete }: RoyalDoorsP
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={finish}
-            className="absolute right-4 top-4 z-20 min-h-[44px] rounded-sm px-4 font-label text-[0.65rem] uppercase tracking-label text-ink-muted transition-colors hover:text-maroon sm:right-8 sm:top-6"
-          >
-            Skip intro
-          </button>
+          {/* Skip sits in its own row so it can never cover the heading on short phone screens. */}
+          <div className="relative z-20 flex shrink-0 justify-end px-2 pt-2 sm:px-6 sm:pt-4">
+            <button
+              type="button"
+              onClick={finish}
+              className="min-h-[44px] rounded-sm px-4 font-label text-[0.65rem] uppercase tracking-label text-ink-muted transition-colors hover:text-maroon"
+            >
+              Skip intro
+            </button>
+          </div>
+
+          <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center pb-6">
 
           <motion.p
-            className="label relative z-10 mb-4 text-center sm:mb-6"
+            className="label relative z-10 mb-2 text-center sm:mb-6"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: opening ? 0 : 1, y: 0 }}
             transition={{ duration: 0.8, delay: opening ? 0 : 0.2 }}
@@ -142,7 +147,7 @@ export function RoyalDoors({ coupleName1, coupleName2, onComplete }: RoyalDoorsP
             The wedding of
           </motion.p>
           <motion.h1
-            className="relative z-10 mb-6 px-6 text-center font-display text-4xl italic text-maroon sm:mb-8 sm:text-5xl"
+            className="relative z-10 mb-5 px-6 text-center font-display text-[2.1rem] italic leading-tight text-maroon sm:mb-8 sm:text-5xl"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: opening ? 0 : 1, y: 0 }}
             transition={{ duration: 0.9, delay: opening ? 0 : 0.35 }}
@@ -152,7 +157,7 @@ export function RoyalDoors({ coupleName1, coupleName2, onComplete }: RoyalDoorsP
 
           {/* Doorway */}
           <div
-            className="relative z-10 aspect-[2/3] w-[min(78vw,46vh,420px)]"
+            className="relative z-10 aspect-[2/3] w-[min(72vw,40vh,420px)] shrink-0"
             style={{ perspective: '1600px' }}
           >
             {/* Ivory jharokha frame around the doorway */}
@@ -206,13 +211,14 @@ export function RoyalDoors({ coupleName1, coupleName2, onComplete }: RoyalDoorsP
             ref={enterRef}
             type="button"
             onClick={enter}
-            className="btn-primary relative z-10 mt-8 px-8 shadow-glow sm:mt-10"
+            className="btn-primary relative z-10 mt-7 shrink-0 px-8 shadow-glow sm:mt-10"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: opening ? 0 : 1, y: 0 }}
             transition={{ duration: 0.8, delay: opening ? 0 : 0.6 }}
           >
             Enter the celebration
           </motion.button>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
