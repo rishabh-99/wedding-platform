@@ -1,0 +1,397 @@
+// Wedding platform data model.
+// All timestamps are stored in UTC; presentation uses WeddingSettings.timezone.
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+}
+
+enum EventStatus {
+  SCHEDULED
+  POSTPONED
+  CANCELLED
+}
+
+enum LiveModeSetting {
+  AUTO
+  ON
+  OFF
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+}
+
+enum MediaPurpose {
+  GALLERY
+  LIVE
+  GUESTBOOK
+  BRANDING
+  DRESSCODE
+  STORY
+}
+
+enum LiveUpdateType {
+  TEXT
+  PHOTO
+  VIDEO
+  ANNOUNCEMENT
+}
+
+enum AttendanceStatus {
+  ATTENDING
+  MAYBE
+  DECLINED
+}
+
+enum GuestSide {
+  BRIDE
+  GROOM
+}
+
+enum GuestbookStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  name         String
+  role         Role       @default(ADMIN)
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  auditLogs    AuditLog[]
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  entity    String
+  entityId  String?
+  meta      Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entity, entityId])
+}
+
+model WeddingSettings {
+  id                 String          @id @default("default")
+  coupleName1        String
+  coupleName2        String
+  familiesLine       String          @default("Together with their families")
+  inviteLine         String          @default("invite you to celebrate their wedding")
+  welcomeMessage     String          @default("")
+  weddingDatesLabel  String
+  weddingHashtag     String?
+  timezone           String          @default("Asia/Kolkata")
+  contactPhone       String?
+  contactWhatsapp    String?
+  contactEmail       String?
+  /// WhatsApp group invite link — the site renders a QR code for it automatically.
+  whatsappGroupUrl   String?
+  siteTitle          String
+  siteDescription    String
+  sections           Json
+  theme              Json?
+  liveMode           LiveModeSetting @default(AUTO)
+  liveBannerText     String          @default("The celebrations have begun")
+  archiveHeadline    String          @default("The celebrations have come to a close.")
+  archiveSubheadline String          @default("But the memories remain.")
+  logoAssetId        String?
+  logoAsset          MediaAsset?     @relation("SettingsLogo", fields: [logoAssetId], references: [id], onDelete: SetNull)
+  ogImageAssetId     String?
+  ogImageAsset       MediaAsset?     @relation("SettingsOgImage", fields: [ogImageAssetId], references: [id], onDelete: SetNull)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+}
+
+model Venue {
+  id                   String   @id @default(cuid())
+  name                 String
+  address              String?
+  mapsUrl              String?
+  description          String?
+  parkingInformation   String?
+  nearbyLandmarks      String?
+  transportInformation String?
+  contactInformation   String?
+  displayOrder         Int      @default(0)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  events               Event[]
+}
+
+model Event {
+  id                   String       @id @default(cuid())
+  name                 String
+  slug                 String       @unique
+  description          String?
+  startDateTime        DateTime
+  endDateTime          DateTime?
+  venueId              String?
+  venue                Venue?       @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  dressCode            String?
+  dressCodeDescription String?
+  dressPalette         Json?
+  helpfulInfo          String?
+  displayOrder         Int          @default(0)
+  status               EventStatus  @default(SCHEDULED)
+  isPublished          Boolean      @default(true)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  liveUpdates          LiveUpdate[]
+  media                MediaAsset[]
+  albums               Album[]
+  rsvpEvents           RsvpEvent[]
+  contacts             Contact[]
+
+  @@index([isPublished, startDateTime])
+  @@index([displayOrder])
+}
+
+model Album {
+  id           String       @id @default(cuid())
+  name         String
+  slug         String       @unique
+  description  String?
+  eventId      String?
+  event        Event?       @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  displayOrder Int          @default(0)
+  isPublished  Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  media        MediaAsset[]
+
+  @@index([displayOrder])
+}
+
+model MediaAsset {
+  id               String       @id @default(cuid())
+  storageKey       String       @unique
+  storageDriver    String       @default("local")
+  /// { thumb: {key,width,height}, medium: {key,width,height} } — derived renditions
+  variants         Json?
+  /// Tiny base64 blur placeholder for progressive loading.
+  placeholder      String?
+  originalFilename String
+  mimeType         String
+  size             Int
+  width            Int?
+  height           Int?
+  duration         Float?
+  type             MediaType
+  purpose          MediaPurpose @default(GALLERY)
+  eventId          String?
+  event            Event?       @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  albumId          String?
+  album            Album?       @relation(fields: [albumId], references: [id], onDelete: SetNull)
+  caption          String?
+  displayOrder     Int          @default(0)
+  isPublished      Boolean      @default(true)
+  uploadedById     String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  liveUpdates       LiveUpdate[]
+  guestbookMessages GuestbookMessage[]
+  storySections     StorySection[]
+  settingsLogo      WeddingSettings[] @relation("SettingsLogo")
+  settingsOgImage   WeddingSettings[] @relation("SettingsOgImage")
+
+  @@index([purpose, isPublished, createdAt])
+  @@index([albumId, displayOrder])
+  @@index([eventId])
+  @@index([type])
+}
+
+model LiveUpdate {
+  id           String         @id @default(cuid())
+  eventId      String?
+  event        Event?         @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  type         LiveUpdateType @default(TEXT)
+  title        String?
+  content      String
+  mediaAssetId String?
+  mediaAsset   MediaAsset?    @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
+  published    Boolean        @default(false)
+  publishedAt  DateTime?
+  scheduledFor DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([published, publishedAt])
+  @@index([scheduledFor])
+  @@index([eventId])
+}
+
+model Rsvp {
+  id                String            @id @default(cuid())
+  guestName         String
+  phone             String
+  /// Digits-only phone used to detect duplicate submissions.
+  phoneNormalized   String            @unique
+  email             String?
+  numberOfGuests    Int               @default(1)
+  /// Whose side the guest is from (bride's / groom's family & friends).
+  side              GuestSide?
+  attendanceStatus  AttendanceStatus
+  message           String?
+  idempotencyKey    String?           @unique
+  submittedAt       DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  events            RsvpEvent[]
+  rooms             RoomAssignment[]
+
+  @@index([attendanceStatus])
+  @@index([side])
+  @@index([submittedAt])
+  @@index([guestName])
+  @@index([email])
+}
+
+model RsvpEvent {
+  rsvpId  String
+  rsvp    Rsvp   @relation(fields: [rsvpId], references: [id], onDelete: Cascade)
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@id([rsvpId, eventId])
+  @@index([eventId])
+}
+
+/// A hotel / guest house / venue block where guests are accommodated.
+model Accommodation {
+  id           String           @id @default(cuid())
+  name         String
+  address      String?
+  mapsUrl      String?
+  contactName  String?
+  contactPhone String?
+  notes        String?
+  displayOrder Int              @default(0)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  rooms        RoomAssignment[]
+
+  @@index([displayOrder])
+}
+
+/// A room allotted to an RSVP party (a party can hold several rooms).
+model RoomAssignment {
+  id              String        @id @default(cuid())
+  rsvpId          String
+  rsvp            Rsvp          @relation(fields: [rsvpId], references: [id], onDelete: Cascade)
+  accommodationId String
+  accommodation   Accommodation @relation(fields: [accommodationId], references: [id], onDelete: Cascade)
+  roomNumber      String
+  checkIn         DateTime?
+  checkOut        DateTime?
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([rsvpId])
+  @@index([accommodationId, roomNumber])
+}
+
+/// Event managers, hospitality desk, transport coordinators…
+model Contact {
+  id           String   @id @default(cuid())
+  name         String
+  role         String
+  phone        String?
+  whatsapp     String?
+  email        String?
+  notes        String?
+  eventId      String?
+  event        Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  isPublic     Boolean  @default(true)
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([eventId])
+  @@index([displayOrder])
+}
+
+model GuestbookMessage {
+  id           String          @id @default(cuid())
+  guestName    String
+  message      String
+  mediaAssetId String?
+  mediaAsset   MediaAsset?     @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
+  status       GuestbookStatus @default(PENDING)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model StorySection {
+  id           String      @id @default(cuid())
+  key          String      @unique
+  eyebrow      String?
+  title        String
+  body         String
+  mediaAssetId String?
+  mediaAsset   MediaAsset? @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
+  displayOrder Int         @default(0)
+  isPublished  Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model TravelSection {
+  id           String   @id @default(cuid())
+  category     String
+  title        String
+  body         String
+  links        Json?
+  displayOrder Int      @default(0)
+  isPublished  Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([displayOrder])
+}
+
+model FaqItem {
+  id           String   @id @default(cuid())
+  question     String
+  answer       String
+  displayOrder Int      @default(0)
+  isPublished  Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([displayOrder])
+}
+
+model Backup {
+  id         String   @id @default(cuid())
+  storageKey String   @unique
+  filename   String
+  size       Int
+  createdBy  String?
+  createdAt  DateTime @default(now())
+}

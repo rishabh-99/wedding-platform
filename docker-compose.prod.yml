@@ -1,0 +1,100 @@
+# Production stack for a single EC2 instance:
+#
+#   cp .env.example .env   # then fill in real values
+#   docker compose -f docker-compose.prod.yml up -d --build
+#   ./docker/init-letsencrypt.sh    # first time only: real HTTPS certificate
+#
+# Internet → nginx (80/443, TLS, static assets) → app (Node API) → Postgres, S3
+name: wedding-platform-prod
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-wedding}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-wedding}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [backend]
+    logging: *logging
+    stop_grace_period: 30s
+
+  app:
+    build:
+      context: .
+      target: app
+    image: wedding-platform-app:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      SEED_DEMO_DATA: "false"
+    volumes:
+      # Only used if STORAGE_DRIVER=local; with S3 media never touches the instance disk.
+      - media:/data/media
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [backend, frontend]
+    logging: *logging
+    stop_grace_period: 20s
+
+  nginx:
+    build:
+      context: .
+      target: nginx
+    image: wedding-platform-nginx:latest
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    depends_on:
+      app:
+        condition: service_healthy
+    # Default command (nginx) so the image's init scripts run: template rendering,
+    # temporary certificate, and a 6-hourly reload for renewed certificates.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null --no-check-certificate --header \"Host: $${DOMAIN}\" https://127.0.0.1/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks: [frontend]
+    logging: *logging
+
+  certbot:
+    image: certbot/certbot:latest
+    restart: unless-stopped
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    entrypoint: ["/bin/sh", "-c", "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"]
+    logging: *logging
+
+networks:
+  frontend:
+  backend:
+
+volumes:
+  pgdata:
+  media:
+  letsencrypt:
+  certbot-www:

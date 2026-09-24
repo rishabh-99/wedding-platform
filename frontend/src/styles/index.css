@@ -1,0 +1,148 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --ivory: #fbf7ee;
+    --gold: #a8894f;
+    --maroon: #6b1e2a;
+    --ink: #2e2420;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  body {
+    @apply bg-ivory font-sans text-ink;
+    /* Handmade-paper grain: a very light fractal-noise overlay. */
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.45 0 0 0 0 0.3 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    font-feature-settings: 'kern', 'liga';
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background: rgba(107, 30, 42, 0.16);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--maroon);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+}
+
+@layer components {
+  .label {
+    @apply font-label text-[0.7rem] uppercase tracking-label text-gold-deep;
+  }
+
+  .label-sm {
+    @apply font-label text-[0.62rem] uppercase tracking-label text-gold-deep;
+  }
+
+  .heading-xl {
+    @apply font-display text-[2.6rem] font-medium leading-[1.05] text-maroon sm:text-6xl;
+  }
+
+  .heading-lg {
+    @apply font-display text-[2.1rem] font-medium leading-tight text-maroon sm:text-5xl;
+  }
+
+  .heading-md {
+    @apply font-display text-2xl font-medium leading-snug text-maroon sm:text-3xl;
+  }
+
+  .body-copy {
+    @apply text-[0.975rem] leading-relaxed text-ink-soft;
+  }
+
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
+  }
+
+  .section {
+    @apply py-16 sm:py-24;
+  }
+
+  .btn {
+    @apply inline-flex min-h-[48px] items-center justify-center gap-2 rounded-sm px-6 py-3 font-label text-[0.72rem] uppercase tracking-wide2 transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-primary {
+    @apply btn bg-maroon text-ivory hover:bg-maroon-light active:bg-maroon-dark;
+  }
+
+  .btn-outline {
+    @apply btn border border-gold text-maroon hover:bg-gold/10;
+  }
+
+  .btn-ghost {
+    @apply btn text-maroon hover:bg-maroon/5;
+  }
+
+  .card-paper {
+    @apply relative border border-gold/35 bg-ivory-50/80 shadow-paper;
+  }
+
+  .gold-rule {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-gold/60 to-transparent;
+  }
+
+  .field-label {
+    @apply mb-1.5 block font-label text-[0.66rem] uppercase tracking-wide2 text-ink-soft;
+  }
+
+  .field-input {
+    @apply block min-h-[48px] w-full rounded-sm border border-gold/40 bg-white/70 px-4 py-3 text-base text-ink placeholder:text-ink-muted/70 transition-colors focus:border-maroon focus:outline-none focus:ring-1 focus:ring-maroon;
+  }
+
+  .field-error {
+    @apply mt-1.5 text-sm text-maroon;
+  }
+
+  .skeleton {
+    @apply animate-shimmer bg-[linear-gradient(90deg,rgba(228,212,178,.35)_0%,rgba(247,240,225,.9)_50%,rgba(228,212,178,.35)_100%)] bg-[length:200%_100%];
+  }
+
+  .live-dot {
+    @apply inline-block h-2 w-2 rounded-full bg-maroon animate-live-pulse;
+  }
+}
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: calc(var(--safe-bottom) + 0.5rem);
+  }
+  .text-shadow-soft {
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+  }
+}
