@@ -13,6 +13,13 @@ export interface LiveStreamOptions {
   pollIntervalMs?: number;
   /** Reconnect if nothing (not even a heartbeat) arrives for this long. */
   staleAfterMs?: number;
+  /**
+   * Refreshes triggered by a broadcast are spread randomly over this window so hundreds of
+   * phones don't all hit the server in the same second.
+   */
+  jitterMs?: number;
+  /** Only resync on returning to the tab after being away at least this long. */
+  resyncAfterHiddenMs?: number;
   /** Injected for tests. */
   EventSourceImpl?: typeof EventSource | undefined;
 }
@@ -48,6 +55,8 @@ export function useLiveStream(options: LiveStreamOptions = {}): LiveConnectionSt
     maxFailures = 3,
     pollIntervalMs = 20_000,
     staleAfterMs = 70_000,
+    jitterMs = 4000,
+    resyncAfterHiddenMs = 60_000,
   } = options;
   const ESImpl = 'EventSourceImpl' in options ? options.EventSourceImpl : typeof EventSource !== 'undefined' ? EventSource : undefined;
   const qc = useQueryClient();
@@ -62,7 +71,19 @@ export function useLiveStream(options: LiveStreamOptions = {}): LiveConnectionSt
     let pollTimer: number | undefined;
     let watchdog: number | undefined;
     let lastActivity = Date.now();
+    let hiddenAt: number | null = null;
     let disposed = false;
+    const timers = new Set<number>();
+
+    /** Runs `fn` after a random delay within the jitter window. */
+    const spread = (fn: () => void) => {
+      if (jitterMs <= 0) return fn();
+      const t = window.setTimeout(() => {
+        timers.delete(t);
+        if (!disposed) fn();
+      }, Math.random() * jitterMs);
+      timers.add(t);
+    };
 
     const refreshAll = () => {
       void qc.invalidateQueries({ queryKey: keys.liveAll });
@@ -78,29 +99,38 @@ export function useLiveStream(options: LiveStreamOptions = {}): LiveConnectionSt
       switch (msg.type) {
         case 'LIVE_UPDATE_CREATED':
         case 'LIVE_UPDATE_UPDATED':
-          if (msg.postId) {
-            try {
-              mergeLiveUpdate(qc, await api.get<LiveUpdateDTO>(`/api/live/${msg.postId}`));
-            } catch {
-              void qc.invalidateQueries({ queryKey: keys.liveAll });
-            }
+          // The post arrives inside the message, so no request is needed.
+          if (msg.post) mergeLiveUpdate(qc, msg.post);
+          else if (msg.postId) {
+            const postId = msg.postId;
+            spread(async () => {
+              try {
+                mergeLiveUpdate(qc, await api.get<LiveUpdateDTO>(`/api/live/${postId}`));
+              } catch {
+                void qc.invalidateQueries({ queryKey: keys.liveAll });
+              }
+            });
           }
           break;
         case 'LIVE_UPDATE_DELETED':
           if (msg.postId) removeLiveUpdate(qc, msg.postId);
           break;
         case 'SCHEDULE_CHANGED':
-          void qc.invalidateQueries({ queryKey: keys.events });
-          void qc.invalidateQueries({ queryKey: keys.schedule });
-          void qc.invalidateQueries({ queryKey: keys.venues });
-          void qc.invalidateQueries({ queryKey: ['event'] });
+          spread(() => {
+            void qc.invalidateQueries({ queryKey: keys.events });
+            void qc.invalidateQueries({ queryKey: keys.schedule });
+            void qc.invalidateQueries({ queryKey: keys.venues });
+            void qc.invalidateQueries({ queryKey: ['event'] });
+          });
           break;
         case 'MEDIA_PUBLISHED':
-          void qc.invalidateQueries({ queryKey: keys.galleryAll });
-          void qc.invalidateQueries({ queryKey: keys.albums });
+          spread(() => {
+            void qc.invalidateQueries({ queryKey: keys.galleryAll });
+            void qc.invalidateQueries({ queryKey: keys.albums });
+          });
           break;
         case 'SETTINGS_CHANGED':
-          void qc.invalidateQueries({ queryKey: keys.settings });
+          spread(() => void qc.invalidateQueries({ queryKey: keys.settings }));
           break;
       }
     };
@@ -108,7 +138,8 @@ export function useLiveStream(options: LiveStreamOptions = {}): LiveConnectionSt
     const startPolling = () => {
       setState('polling');
       window.clearInterval(pollTimer);
-      pollTimer = window.setInterval(refreshAll, pollIntervalMs);
+      // Offset each phone's polling so they don't all arrive together.
+      pollTimer = window.setInterval(refreshAll, pollIntervalMs + Math.random() * jitterMs);
       // Periodically try SSE again in case the network/proxy recovered.
       window.clearTimeout(reconnectTimer);
       if (ESImpl) reconnectTimer = window.setTimeout(() => connect(), 120_000);
@@ -151,16 +182,17 @@ export function useLiveStream(options: LiveStreamOptions = {}): LiveConnectionSt
       });
       es.addEventListener('ping', () => (lastActivity = Date.now()));
       es.addEventListener('hello', () => (lastActivity = Date.now()));
-      es.addEventListener('resync', refreshAll);
+      es.addEventListener('resync', () => spread(refreshAll));
       es.addEventListener('shutdown', () => {
         // Server is restarting — reconnect shortly (the replay buffer may be gone, so resync).
         es?.close();
         setState('reconnecting');
         window.clearTimeout(reconnectTimer);
+        // Spread reconnects after a server restart so every phone doesn't return at once.
         reconnectTimer = window.setTimeout(() => {
           connect();
           refreshAll();
-        }, 3000);
+        }, 3000 + Math.random() * 7000);
       });
       es.addEventListener('error', () => {
         // readyState CONNECTING = the browser is auto-retrying; CLOSED = it gave up (e.g. HTTP error).
@@ -170,9 +202,23 @@ export function useLiveStream(options: LiveStreamOptions = {}): LiveConnectionSt
     }
 
     const onVisibility = () => {
-      if (document.visibilityState !== 'visible') return;
+      if (document.visibilityState !== 'visible') {
+        hiddenAt ??= Date.now();
+        return;
+      }
+      const awayFor = hiddenAt === null ? 0 : Date.now() - hiddenAt;
+      hiddenAt = null;
+      const dead = !!ESImpl && (!es || es.readyState === 2 || Date.now() - lastActivity > staleAfterMs);
+      // A quick switch to WhatsApp and back needs no refresh: the stream kept the page current.
+      if (awayFor >= resyncAfterHiddenMs || dead) refreshAll();
+      if (dead) {
+        failures = 0;
+        connect();
+      }
+    };
+    const onOnline = () => {
       refreshAll();
-      if (ESImpl && (!es || es.readyState === 2 || Date.now() - lastActivity > staleAfterMs)) {
+      if (ESImpl && (!es || es.readyState === 2)) {
         failures = 0;
         connect();
       }
@@ -189,7 +235,7 @@ export function useLiveStream(options: LiveStreamOptions = {}): LiveConnectionSt
       startPolling();
     }
     document.addEventListener('visibilitychange', onVisibility);
-    window.addEventListener('online', onVisibility);
+    window.addEventListener('online', onOnline);
 
     return () => {
       disposed = true;
@@ -197,10 +243,11 @@ export function useLiveStream(options: LiveStreamOptions = {}): LiveConnectionSt
       window.clearTimeout(reconnectTimer);
       window.clearInterval(pollTimer);
       window.clearInterval(watchdog);
+      timers.forEach((t) => window.clearTimeout(t));
       document.removeEventListener('visibilitychange', onVisibility);
-      window.removeEventListener('online', onVisibility);
+      window.removeEventListener('online', onOnline);
     };
-  }, [qc, url, maxFailures, pollIntervalMs, staleAfterMs, ESImpl]);
+  }, [qc, url, maxFailures, pollIntervalMs, staleAfterMs, jitterMs, resyncAfterHiddenMs, ESImpl]);
 
   return state;
 }

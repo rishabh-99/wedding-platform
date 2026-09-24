@@ -100,7 +100,7 @@ export const pushService = {
     broker.on('message', (msg: RealtimeMessage) => {
       if (msg.type !== 'LIVE_UPDATE_CREATED' || !msg.postId) return;
       void (async () => {
-        const post = await prisma.liveUpdate.findUnique({ where: { id: msg.postId! }, include: { event: { select: { name: true } } } });
+        const post = msg.post ?? (await prisma.liveUpdate.findUnique({ where: { id: msg.postId! }, include: { event: { select: { name: true } } } }));
         if (!post?.published) return;
         const title = post.title ?? (post.event ? `${post.event.name} · Live` : 'Live from the celebrations');
         const body = post.content.length > 140 ? `${post.content.slice(0, 137)}…` : post.content;

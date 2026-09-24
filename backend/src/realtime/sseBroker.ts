@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { EventEmitter } from 'node:events';
-import type { RealtimeEventType, RealtimeMessage } from '@wedding/shared';
+import type { LiveUpdateDTO, RealtimeEventType, RealtimeMessage } from '@wedding/shared';
 import { logger } from '../lib/logger';
 
 interface Client {
@@ -22,6 +22,7 @@ export class SseBroker extends EventEmitter {
   private seq = Date.now();
   private buffer: RealtimeMessage[] = [];
   private heartbeat: NodeJS.Timeout | null = null;
+  private coalesceTimers = new Map<string, NodeJS.Timeout>();
 
   constructor(
     private readonly options: { heartbeatMs?: number; bufferSize?: number; retryMs?: number } = {},
@@ -75,13 +76,14 @@ export class SseBroker extends EventEmitter {
     res.on('error', cleanup);
   };
 
-  publish(type: RealtimeEventType, payload: { eventId?: string | null; postId?: string | null } = {}): RealtimeMessage {
+  publish(type: RealtimeEventType, payload: { eventId?: string | null; postId?: string | null; post?: LiveUpdateDTO } = {}): RealtimeMessage {
     const message: RealtimeMessage = {
       id: ++this.seq,
       type,
       eventId: payload.eventId ?? null,
       postId: payload.postId ?? null,
       timestamp: new Date().toISOString(),
+      ...(payload.post ? { post: payload.post } : {}),
     };
     this.buffer.push(message);
     const max = this.options.bufferSize ?? 200;
@@ -90,6 +92,20 @@ export class SseBroker extends EventEmitter {
     this.emit('message', message);
     logger.debug({ type, clients: this.clients.size }, 'sse broadcast');
     return message;
+  }
+
+  /**
+   * Collapses a burst of the same notice (e.g. approving 30 guest photos one by one) into a
+   * single broadcast after `waitMs`, so open browsers refresh once instead of 30 times.
+   */
+  publishCoalesced(type: RealtimeEventType, waitMs = 3000): void {
+    if (this.coalesceTimers.has(type)) return;
+    const timer = setTimeout(() => {
+      this.coalesceTimers.delete(type);
+      this.publish(type);
+    }, waitMs);
+    timer.unref();
+    this.coalesceTimers.set(type, timer);
   }
 
   private send(client: Client, message: RealtimeMessage): void {
@@ -108,6 +124,8 @@ export class SseBroker extends EventEmitter {
   close(): void {
     if (this.heartbeat) clearInterval(this.heartbeat);
     this.heartbeat = null;
+    for (const timer of this.coalesceTimers.values()) clearTimeout(timer);
+    this.coalesceTimers.clear();
     for (const client of this.clients.values()) {
       try {
         client.res.write(`event: shutdown\ndata: {}\n\n`);

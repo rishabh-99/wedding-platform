@@ -314,7 +314,7 @@ export const mediaService = {
     const existing = await this.get(id);
     const row = await prisma.mediaAsset.update({ where: { id }, data: input, include: listInclude });
     if (!existing.isPublished && row.isPublished && row.purpose === 'GALLERY') {
-      broker.publish('MEDIA_PUBLISHED', { eventId: row.eventId, postId: row.id });
+      broker.publishCoalesced('MEDIA_PUBLISHED');
     }
     return toMediaDTO(row, { admin: true });
   },

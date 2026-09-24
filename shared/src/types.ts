@@ -341,6 +341,11 @@ export interface RealtimeMessage {
   eventId: string | null;
   postId: string | null;
   timestamp: string;
+  /**
+   * The published post itself (LIVE_UPDATE_CREATED / UPDATED), so open browsers can show it
+   * without each one calling the API at the same moment.
+   */
+  post?: LiveUpdateDTO;
 }
 
 export interface ApiErrorBody {

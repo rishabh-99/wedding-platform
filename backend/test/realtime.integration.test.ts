@@ -1,6 +1,6 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { LiveUpdateDTO, RealtimeMessage } from '@wedding/shared';
 import { createApp } from '../src/app';
 import { prisma } from '../src/lib/prisma';
@@ -120,6 +120,22 @@ describe('realtime integration: admin post → SSE → guest', () => {
     expect(fetched.content).toBe('The dance floor is officially open!');
     expect(fetched.event?.name).toBe('Sangeet');
     guest.close();
+  });
+
+  it('collapses a burst of the same notice into one broadcast', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const sent: string[] = [];
+      const listener = (m: { type: string }) => sent.push(m.type);
+      broker.on('message', listener);
+      for (let i = 0; i < 30; i++) broker.publishCoalesced('MEDIA_PUBLISHED', 3000);
+      expect(sent).toEqual([]);
+      vi.advanceTimersByTime(3000);
+      expect(sent).toEqual(['MEDIA_PUBLISHED']);
+      broker.off('message', listener);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('replays missed messages after a reconnect (Last-Event-ID)', async () => {

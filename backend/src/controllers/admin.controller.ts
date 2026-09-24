@@ -204,7 +204,7 @@ export const mediaAdminController = {
     }
     const anyOk = results.some((r) => r.ok);
     if (anyOk && fields.purpose === 'GALLERY' && fields.isPublished) {
-      broker.publish('MEDIA_PUBLISHED', { eventId: fields.eventId });
+      broker.publishCoalesced('MEDIA_PUBLISHED');
     }
     res.status(anyOk ? 201 : 400).json({ results });
   },

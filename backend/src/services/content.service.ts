@@ -32,19 +32,19 @@ export const venueService = {
   },
   async create(input: z.output<typeof venueInputSchema>) {
     const v = await prisma.venue.create({ data: input });
-    broker.publish('SCHEDULE_CHANGED');
+    broker.publishCoalesced('SCHEDULE_CHANGED');
     return toVenueDTO(v);
   },
   async update(id: string, input: z.output<typeof venueInputSchema>) {
     await ensure(prisma.venue.findUnique({ where: { id } }), 'Venue');
     const v = await prisma.venue.update({ where: { id }, data: input });
-    broker.publish('SCHEDULE_CHANGED');
+    broker.publishCoalesced('SCHEDULE_CHANGED');
     return toVenueDTO(v);
   },
   async remove(id: string) {
     await ensure(prisma.venue.findUnique({ where: { id } }), 'Venue');
     await prisma.venue.delete({ where: { id } });
-    broker.publish('SCHEDULE_CHANGED');
+    broker.publishCoalesced('SCHEDULE_CHANGED');
   },
 };
 

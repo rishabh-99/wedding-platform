@@ -13,7 +13,6 @@ import {
 import type { z } from 'zod';
 import { badRequest, notFound } from '../lib/errors';
 import { prisma } from '../lib/prisma';
-import { broker } from '../realtime/sseBroker';
 import { eventService } from './event.service';
 import { partyEvents, partyInclude, toTravelDTO, travelData } from './guest.service';
 import { toMediaDTO, toRoomDTO } from './mappers';
@@ -142,13 +141,11 @@ export const staffService = {
       create: { rsvpId, eventId: input.eventId, count: input.count, method: input.method, checkedInByName: byName },
       update: { count: input.count, method: input.method, checkedInByName: byName },
     });
-    broker.publish('CHECKIN_UPDATED', { eventId: input.eventId });
     return { rsvpId, eventId: row.eventId, count: row.count, checkedInAt: row.checkedInAt.toISOString() };
   },
 
   async undoCheckIn(rsvpId: string, eventId: string) {
     await prisma.checkIn.deleteMany({ where: { rsvpId, eventId } });
-    broker.publish('CHECKIN_UPDATED', { eventId });
   },
 
   async followUp(input: z.output<typeof followUpSchema>, byName: string) {
@@ -157,7 +154,6 @@ export const staffService = {
       create: { ...input, updatedByName: byName },
       update: { status: input.status, note: input.note, updatedByName: byName },
     });
-    broker.publish('CHECKIN_UPDATED', { eventId: input.eventId });
   },
 
   // ── Photo of the day ──────────────────────────────────────────────────────

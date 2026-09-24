@@ -57,33 +57,33 @@ export const eventService = {
 
   async create(input: EventParsed): Promise<EventDTO> {
     const created = await eventRepository.create(toData(input)).catch(handleUnique);
-    broker.publish('SCHEDULE_CHANGED', { eventId: created.id });
+    broker.publishCoalesced('SCHEDULE_CHANGED');
     return toEventDTO(created);
   },
 
   async update(id: string, input: EventParsed): Promise<EventDTO> {
     if (!(await eventRepository.findById(id))) throw notFound('Event');
     const updated = await eventRepository.update(id, toData(input)).catch(handleUnique);
-    broker.publish('SCHEDULE_CHANGED', { eventId: id });
+    broker.publishCoalesced('SCHEDULE_CHANGED');
     return toEventDTO(updated);
   },
 
   async setPublished(id: string, isPublished: boolean): Promise<EventDTO> {
     if (!(await eventRepository.findById(id))) throw notFound('Event');
     const updated = await eventRepository.update(id, { isPublished });
-    broker.publish('SCHEDULE_CHANGED', { eventId: id });
+    broker.publishCoalesced('SCHEDULE_CHANGED');
     return toEventDTO(updated);
   },
 
   async remove(id: string): Promise<void> {
     if (!(await eventRepository.findById(id))) throw notFound('Event');
     await eventRepository.delete(id);
-    broker.publish('SCHEDULE_CHANGED', { eventId: id });
+    broker.publishCoalesced('SCHEDULE_CHANGED');
   },
 
   async reorder(ids: string[]): Promise<void> {
     await eventRepository.reorder(ids);
-    broker.publish('SCHEDULE_CHANGED');
+    broker.publishCoalesced('SCHEDULE_CHANGED');
   },
 
   /** "What is happening now?" — computed from the database schedule by the shared engine. */

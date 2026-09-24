@@ -95,8 +95,9 @@ export const liveUpdateService = {
       },
       include,
     });
-    if (row.published) broker.publish('LIVE_UPDATE_CREATED', { eventId: row.eventId, postId: row.id });
-    return toLiveUpdateDTO(row);
+    const dto = await toLiveUpdateDTO(row);
+    if (row.published) broker.publish('LIVE_UPDATE_CREATED', { eventId: row.eventId, postId: row.id, post: dto });
+    return dto;
   },
 
   async update(id: string, input: LiveInput): Promise<LiveUpdateDTO> {
@@ -115,8 +116,9 @@ export const liveUpdateService = {
       },
       include,
     });
-    this.broadcastTransition(existing.published, row.published, row.id, row.eventId);
-    return toLiveUpdateDTO(row);
+    const dto = await toLiveUpdateDTO(row);
+    this.broadcastTransition(existing.published, dto);
+    return dto;
   },
 
   async setPublished(id: string, published: boolean): Promise<LiveUpdateDTO> {
@@ -129,8 +131,9 @@ export const liveUpdateService = {
         : { published: false, scheduledFor: null },
       include,
     });
-    this.broadcastTransition(existing.published, row.published, row.id, row.eventId);
-    return toLiveUpdateDTO(row);
+    const dto = await toLiveUpdateDTO(row);
+    this.broadcastTransition(existing.published, dto);
+    return dto;
   },
 
   async remove(id: string): Promise<void> {
@@ -152,14 +155,18 @@ export const liveUpdateService = {
         where: { id: post.id, published: false },
         data: { published: true, publishedAt: post.scheduledFor ?? now, scheduledFor: null },
       });
-      if (count) broker.publish('LIVE_UPDATE_CREATED', { eventId: post.eventId, postId: post.id });
+      if (!count) continue;
+      const row = await prisma.liveUpdate.findUnique({ where: { id: post.id }, include });
+      const dto = row ? await toLiveUpdateDTO(row) : undefined;
+      broker.publish('LIVE_UPDATE_CREATED', { eventId: post.eventId, postId: post.id, post: dto });
     }
     return due.length;
   },
 
-  broadcastTransition(wasPublished: boolean, isPublished: boolean, postId: string, eventId: string | null) {
-    if (!wasPublished && isPublished) broker.publish('LIVE_UPDATE_CREATED', { eventId, postId });
-    else if (wasPublished && !isPublished) broker.publish('LIVE_UPDATE_DELETED', { eventId, postId });
-    else if (isPublished) broker.publish('LIVE_UPDATE_UPDATED', { eventId, postId });
+  broadcastTransition(wasPublished: boolean, post: LiveUpdateDTO) {
+    const base = { eventId: post.eventId, postId: post.id };
+    if (!wasPublished && post.published) broker.publish('LIVE_UPDATE_CREATED', { ...base, post });
+    else if (wasPublished && !post.published) broker.publish('LIVE_UPDATE_DELETED', base);
+    else if (post.published) broker.publish('LIVE_UPDATE_UPDATED', { ...base, post });
   },
 };

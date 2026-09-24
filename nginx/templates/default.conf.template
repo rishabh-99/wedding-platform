@@ -89,13 +89,14 @@ server {
   location = /api/guestbook {
     include /etc/nginx/snippets/proxy.conf;
     client_max_body_size 12m;
-    limit_req zone=api burst=20 nodelay;
+    limit_req zone=api burst=100 nodelay;
     proxy_pass http://wedding_app;
   }
 
   location /api/ {
     include /etc/nginx/snippets/proxy.conf;
-    limit_req zone=api burst=60 nodelay;
+    limit_req zone=api burst=400 nodelay;
+    limit_req_status 429;
     proxy_pass http://wedding_app;
   }
 

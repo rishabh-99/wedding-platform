@@ -34,6 +34,8 @@ describe('live updates', () => {
     expect(res.body).toMatchObject({ status: 'PUBLISHED', published: true, event: { slug: 'sangeet' } });
     expect(await prisma.liveUpdate.count({ where: { published: true } })).toBe(1);
     expect(cap.messages).toEqual([expect.objectContaining({ type: 'LIVE_UPDATE_CREATED', postId: res.body.id, eventId: sangeetId })]);
+    // The post travels inside the message, so browsers don't each have to fetch it.
+    expect(cap.messages[0]!.post).toMatchObject({ id: res.body.id, content: 'The dance floor is officially open!', event: { name: 'Sangeet' } });
 
     const feed = await request(getApp()).get('/api/live').expect(200);
     expect(feed.body[0].content).toBe('The dance floor is officially open!');

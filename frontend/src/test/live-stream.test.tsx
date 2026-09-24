@@ -73,8 +73,23 @@ describe('useLiveStream → live feed', () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it('renders a new post the moment an SSE event arrives — no refresh', async () => {
+  it('shows a new post straight from the SSE message — no request per phone', async () => {
     renderHarness({ EventSourceImpl: FakeEventSource as unknown as typeof EventSource });
+    expect(await screen.findByText('Marigolds everywhere')).toBeInTheDocument();
+    const es = FakeEventSource.instances[0]!;
+    act(() => es.open());
+    const callsBefore = fetchMock.mock.calls.length;
+
+    const msg: RealtimeMessage = { id: 102, type: 'LIVE_UPDATE_CREATED', eventId: 'sangeet', postId: 'p2', timestamp: new Date().toISOString(), post: incoming };
+    act(() => es.emit('message', msg));
+
+    expect(await screen.findByText('The dance floor is officially open!')).toBeInTheDocument();
+    expect(screen.getAllByTestId('live-entry')[0]).toHaveTextContent('The dance floor is officially open!');
+    expect(fetchMock.mock.calls.length).toBe(callsBefore);
+  });
+
+  it('fetches a post the message only names (older servers), then ignores duplicates', async () => {
+    renderHarness({ EventSourceImpl: FakeEventSource as unknown as typeof EventSource, jitterMs: 0 });
     expect(await screen.findByText('Marigolds everywhere')).toBeInTheDocument();
     const es = FakeEventSource.instances[0]!;
     expect(es.url).toBe('/api/live/stream');
@@ -105,7 +120,7 @@ describe('useLiveStream → live feed', () => {
   });
 
   it('falls back to polling when EventSource is unavailable', async () => {
-    renderHarness({ EventSourceImpl: undefined, pollIntervalMs: 50 });
+    renderHarness({ EventSourceImpl: undefined, pollIntervalMs: 50, jitterMs: 0 });
     expect(screen.getByTestId('state')).toHaveTextContent('polling');
     expect(await screen.findByText('Marigolds everywhere')).toBeInTheDocument();
     const initialCalls = fetchMock.mock.calls.length;
