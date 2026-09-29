@@ -10,6 +10,7 @@ import { btn, Card, FieldRow, PageHeader, Select, TextArea, TextInput, Toggle, f
 
 const SECTION_LABELS: Record<keyof SectionToggles, string> = {
   story: 'Our story',
+  family: 'Our family',
   rsvp: 'RSVP',
   gallery: 'Gallery',
   guestbook: 'Guestbook',

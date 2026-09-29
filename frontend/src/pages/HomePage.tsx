@@ -12,6 +12,7 @@ import { RsvpForm } from '../components/rsvp/RsvpForm';
 import { DressCodeSection, FaqSection, StorySection, TravelSection, VenuesSection } from '../components/sections/ContentSections';
 import { WhatsAppGroupCard } from '../components/sections/WhatsAppGroup';
 import { ErrorState, LoadingBlock, SectionHeading } from '../components/ui/primitives';
+import { FamilyTeaser } from '../components/family/FamilyTeaser';
 import { useClock } from '../hooks/useClock';
 import { useSchedule } from '../hooks/useSchedule';
 import { useFaq, useGallery, useGuestbook, useLiveUpdates, useSettings, useStory, useTravel, useVenues } from '../services/queries';
@@ -145,13 +146,15 @@ export default function HomePage() {
 
       {sections?.story !== false && story.data && <StorySection sections={story.data} />}
 
+      {sections?.family !== false && <FamilyTeaser />}
+
       <section className="section bg-ivory-100/40" aria-labelledby="celebrations-title" id="celebrations">
         <div className="container-page">
           <SectionHeading id="celebrations-title" eyebrow="Save the dates" title="The celebrations" />
           {schedule.isLoading ? (
             <LoadingBlock lines={6} />
           ) : (
-            <EventTimeline events={schedule.events} timeZone={tz} currentId={schedule.current?.id} pastIds={schedule.past.map((e) => e.id)} />
+            <EventTimeline events={schedule.events} timeZone={tz} currentId={schedule.current?.id} pastIds={schedule.past.map((e) => e.id)} art />
           )}
           <div className="mt-10 text-center">
             <Link to="/itinerary" className="btn-outline">Full itinerary</Link>

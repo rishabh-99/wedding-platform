@@ -24,6 +24,7 @@ export const ATTENDANCE_LABELS: Record<AttendanceStatus, string> = {
 
 export interface SectionToggles {
   story: boolean;
+  family: boolean;
   rsvp: boolean;
   gallery: boolean;
   guestbook: boolean;
@@ -35,6 +36,7 @@ export interface SectionToggles {
 
 export const DEFAULT_SECTIONS: SectionToggles = {
   story: true,
+  family: true,
   rsvp: true,
   gallery: true,
   guestbook: true,

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -13,6 +14,26 @@ import { FramedCorners } from '../ornaments/Ornaments';
 import { LiveBadge } from '../ui/primitives';
 import { Countdown } from './Countdown';
 import { DirectionsButton } from './DirectionsButton';
+import { FILM_WIDTH, sceneForSlug } from '../../film/sceneRegistry';
+
+const EventScene = lazy(() => import('../../film/EventScene'));
+const EventArt = lazy(() => import('../../film/EventArt'));
+
+/** The celebration's scene from the invitation film: playing when `play`, otherwise a still. Nothing if it has none. */
+function Art({ event, timeZone, play = false, className }: { event: EventDTO; timeZone: string; play?: boolean; className: string }) {
+  const scene = sceneForSlug(event.slug);
+  if (!scene) return null;
+  const fallback = <div className={`skeleton ${className}`} style={{ aspectRatio: `${FILM_WIDTH} / ${scene.crop}` }} />;
+  return (
+    <Suspense fallback={fallback}>
+      {play ? (
+        <EventScene event={event} scene={scene} timeZone={timeZone} className={className} />
+      ) : (
+        <EventArt event={event} scene={scene} timeZone={timeZone} className={className} />
+      )}
+    </Suspense>
+  );
+}
 
 interface Props {
   schedule: ScheduleResult<EventDTO>;
@@ -46,6 +67,18 @@ export function WhatsHappeningNow({ schedule, now, timeZone: tz, latestUpdate, p
         <p className="label">The celebrations</p>
         <p className="mt-3 font-display text-2xl text-maroon">Every celebration has now taken place.</p>
         <p className="body-copy mt-2">Thank you for being part of our story. The memories live on below.</p>
+        {schedule.past.length > 0 && (
+          <ul className="mt-8 flex flex-wrap justify-center gap-3 sm:gap-4" aria-label="The celebrations">
+            {schedule.past.map((e) => (
+              <li key={e.id}>
+                <Link to={`/celebrations/${e.slug}`} className="group flex w-16 flex-col items-center gap-2 sm:w-20" aria-label={e.name}>
+                  <Art event={e} timeZone={tz} className="w-full transition-transform group-hover:-translate-y-0.5" />
+                  <span className="text-center font-label text-[0.6rem] uppercase leading-tight tracking-wide2 text-ink-soft group-hover:text-maroon">{e.name}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     );
   }
@@ -64,34 +97,37 @@ export function WhatsHappeningNow({ schedule, now, timeZone: tz, latestUpdate, p
             aria-live="polite"
           >
             <FramedCorners size="h-6 w-6 sm:h-9 sm:w-9" className="opacity-70 [&_svg]:text-gold-light" />
-            <div className="relative">
-              <LiveBadge className="text-gold-pale [&_.live-dot]:bg-gold-light" />
-              <p className="mt-5 font-label text-[0.7rem] uppercase tracking-label text-gold-pale">What’s happening now</p>
-              <h3 className={`mt-2 font-display font-medium leading-tight text-ivory ${prominent ? 'text-5xl sm:text-6xl' : 'text-4xl'}`}>
-                {current.name}
-              </h3>
-              <p className="mt-3 font-display text-2xl italic text-gold-pale" aria-label={`The time is now ${formatTime(now, tz)}`}>
-                {formatTime(now, tz)}
-              </p>
-              {current.venue && <p className="mt-2 text-sm text-ivory/80">at {current.venue.name}</p>}
-              {latestUpdate && latestUpdate.eventId === current.id && (
-                <p className="mt-5 max-w-md border-l border-gold-light/60 pl-4 text-[0.95rem] leading-relaxed text-ivory/90">
-                  “{latestUpdate.content}”
-                  <span className="mt-1 block font-label text-[0.6rem] uppercase tracking-label text-gold-pale">
-                    {latestUpdate.publishedAt && formatTime(latestUpdate.publishedAt, tz)}
-                  </span>
+            <div className="relative flex flex-col gap-8 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <LiveBadge className="text-gold-pale [&_.live-dot]:bg-gold-light" />
+                <p className="mt-5 font-label text-[0.7rem] uppercase tracking-label text-gold-pale">What’s happening now</p>
+                <h3 className={`mt-2 font-display font-medium leading-tight text-ivory ${prominent ? 'text-5xl sm:text-6xl' : 'text-4xl'}`}>
+                  {current.name}
+                </h3>
+                <p className="mt-3 font-display text-2xl italic text-gold-pale" aria-label={`The time is now ${formatTime(now, tz)}`}>
+                  {formatTime(now, tz)}
                 </p>
-              )}
-              <div className="mt-7 flex flex-wrap gap-3">
-                <Link to={`/celebrations/${current.slug}`} className="btn bg-ivory text-maroon hover:bg-ivory-100">
-                  Event details
-                </Link>
-                {current.venue?.mapsUrl && (
-                  <a href={current.venue.mapsUrl} target="_blank" rel="noopener noreferrer" className="btn border border-gold-light/70 text-ivory hover:bg-white/10">
-                    Directions
-                  </a>
+                {current.venue && <p className="mt-2 text-sm text-ivory/80">at {current.venue.name}</p>}
+                {latestUpdate && latestUpdate.eventId === current.id && (
+                  <p className="mt-5 max-w-md border-l border-gold-light/60 pl-4 text-[0.95rem] leading-relaxed text-ivory/90">
+                    “{latestUpdate.content}”
+                    <span className="mt-1 block font-label text-[0.6rem] uppercase tracking-label text-gold-pale">
+                      {latestUpdate.publishedAt && formatTime(latestUpdate.publishedAt, tz)}
+                    </span>
+                  </p>
                 )}
+                <div className="mt-7 flex flex-wrap gap-3">
+                  <Link to={`/celebrations/${current.slug}`} className="btn bg-ivory text-maroon hover:bg-ivory-100">
+                    Event details
+                  </Link>
+                  {current.venue?.mapsUrl && (
+                    <a href={current.venue.mapsUrl} target="_blank" rel="noopener noreferrer" className="btn border border-gold-light/70 text-ivory hover:bg-white/10">
+                      Directions
+                    </a>
+                  )}
+                </div>
               </div>
+              <Art event={current} timeZone={tz} play className={`mx-auto w-full shrink-0 sm:mx-0 ${prominent ? 'max-w-[15rem] sm:w-52 lg:w-60' : 'max-w-[13rem] sm:w-44'}`} />
             </div>
           </motion.article>
         ) : next ? (
@@ -104,18 +140,23 @@ export function WhatsHappeningNow({ schedule, now, timeZone: tz, latestUpdate, p
             data-testid="whn-next"
           >
             <FramedCorners />
-            <p className="label">Up next</p>
-            <h3 className="mt-3 font-display text-4xl font-medium text-maroon">{next.name}</h3>
-            <p className="mt-2 font-label text-[0.72rem] uppercase tracking-wide2 text-ink-soft">{whenLabel(next, now, tz)}</p>
-            {next.venue && <p className="mt-1 text-sm text-ink-muted">{next.venue.name}</p>}
-            <div className="mt-6">
-              <Countdown target={next.startDateTime} now={now} compact />
-            </div>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link to={`/celebrations/${next.slug}`} className="btn-outline">
-                Details
-              </Link>
-              <DirectionsButton venue={next.venue} variant="outline" />
+            <div className="flex flex-col gap-8 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="label">Up next</p>
+                <h3 className="mt-3 font-display text-4xl font-medium text-maroon">{next.name}</h3>
+                <p className="mt-2 font-label text-[0.72rem] uppercase tracking-wide2 text-ink-soft">{whenLabel(next, now, tz)}</p>
+                {next.venue && <p className="mt-1 text-sm text-ink-muted">{next.venue.name}</p>}
+                <div className="mt-6">
+                  <Countdown target={next.startDateTime} now={now} compact />
+                </div>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <Link to={`/celebrations/${next.slug}`} className="btn-outline">
+                    Details
+                  </Link>
+                  <DirectionsButton venue={next.venue} variant="outline" />
+                </div>
+              </div>
+              <Art event={next} timeZone={tz} play className="mx-auto w-full max-w-[13rem] shrink-0 sm:mx-0 sm:w-40" />
             </div>
           </motion.article>
         ) : null}
@@ -123,19 +164,25 @@ export function WhatsHappeningNow({ schedule, now, timeZone: tz, latestUpdate, p
 
       <div className="flex flex-col gap-4">
         {showJustHappened && previous && (
-          <article className="border border-gold/25 bg-ivory-100/60 px-6 py-5" data-testid="whn-previous">
-            <p className="label-sm">Just happened</p>
-            <p className="mt-1 font-display text-2xl text-maroon">{previous.name}</p>
-            <Link to={`/celebrations/${previous.slug}`} className="mt-1 inline-block text-sm text-ink-soft underline decoration-gold/60 underline-offset-4 hover:text-maroon">
-              See moments from the {previous.name.toLowerCase()}
-            </Link>
+          <article className="flex items-center gap-4 border border-gold/25 bg-ivory-100/60 px-4 py-4 sm:px-6" data-testid="whn-previous">
+            <Art event={previous} timeZone={tz} className="w-14 shrink-0" />
+            <div className="min-w-0">
+              <p className="label-sm">Just happened</p>
+              <p className="mt-1 font-display text-2xl text-maroon">{previous.name}</p>
+              <Link to={`/celebrations/${previous.slug}`} className="mt-1 inline-block text-sm text-ink-soft underline decoration-gold/60 underline-offset-4 hover:text-maroon">
+                See moments from the {previous.name.toLowerCase()}
+              </Link>
+            </div>
           </article>
         )}
         {current && next && (
-          <article className="border border-gold/30 bg-ivory-50 px-6 py-5" data-testid="whn-upnext">
-            <p className="label-sm">Up next</p>
-            <p className="mt-1 font-display text-2xl text-maroon">{next.name}</p>
-            <p className="text-sm text-ink-soft">{whenLabel(next, now, tz)}</p>
+          <article className="flex items-center gap-4 border border-gold/30 bg-ivory-50 px-4 py-4 sm:px-6" data-testid="whn-upnext">
+            <Art event={next} timeZone={tz} className="w-14 shrink-0" />
+            <div className="min-w-0">
+              <p className="label-sm">Up next</p>
+              <p className="mt-1 font-display text-2xl text-maroon">{next.name}</p>
+              <p className="text-sm text-ink-soft">{whenLabel(next, now, tz)}</p>
+            </div>
           </article>
         )}
         {later.length > 0 && (
@@ -145,7 +192,10 @@ export function WhatsHappeningNow({ schedule, now, timeZone: tz, latestUpdate, p
               {later.slice(0, 4).map((e) => (
                 <li key={e.id}>
                   <Link to={`/celebrations/${e.slug}`} className="flex min-h-[44px] items-center justify-between gap-4 py-2 hover:text-maroon">
-                    <span className="min-w-0 font-display text-lg text-ink">{e.name}</span>
+                    <span className="flex min-w-0 items-center gap-3">
+                      <Art event={e} timeZone={tz} className="w-8 shrink-0" />
+                      <span className="min-w-0 font-display text-lg text-ink">{e.name}</span>
+                    </span>
                     <span className="max-w-[55%] text-right text-xs text-ink-muted">{whenLabel(e, now, tz)}</span>
                   </Link>
                 </li>

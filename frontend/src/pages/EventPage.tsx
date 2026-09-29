@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { formatLongDate, formatTime, formatWeekday, type MediaDTO, type Paginated } from '@wedding/shared';
@@ -14,6 +15,10 @@ import { useSchedule } from '../hooks/useSchedule';
 import { ApiError, api, qs } from '../services/api';
 import { useContacts, useEvent, useLiveUpdates } from '../services/queries';
 import { ContactCards } from '../components/sections/ContactCards';
+import { FILM_WIDTH, sceneForSlug } from '../film/sceneRegistry';
+
+// The film scene (and Remotion with it) loads only for celebrations that have one.
+const EventScene = lazy(() => import('../film/EventScene'));
 
 /** Event detail: everything a guest needs for one celebration. */
 export default function EventPage() {
@@ -61,6 +66,7 @@ export default function EventPage() {
   const isPast = schedule.past.some((e) => e.id === event.id);
   const upcoming = !isLive && !isPast && Date.parse(event.startDateTime) > now.getTime();
   const photos = gallery.data?.items ?? [];
+  const scene = sceneForSlug(event.slug);
 
   return (
     <article>
@@ -69,29 +75,40 @@ export default function EventPage() {
           <nav aria-label="Breadcrumb" className="mb-6">
             <Link to="/celebrations" className="label-sm hover:text-maroon">← The celebrations</Link>
           </nav>
-          {isLive && <LiveBadge label="Happening now" className="mb-4" />}
-          {isPast && <p className="label-sm mb-4 text-ink-muted">This celebration has concluded</p>}
-          <h1 className="heading-xl uppercase tracking-[0.05em]">{event.name}</h1>
-          <OrnamentDivider className="mx-auto mt-6" />
-          <p className="mt-6 font-label text-[0.8rem] uppercase tracking-label text-ink">
-            {formatWeekday(event.startDateTime, tz)}, {formatLongDate(event.startDateTime, tz)}
-          </p>
-          <p className="mt-1 font-display text-2xl italic text-ink-soft">{formatTime(event.startDateTime, tz)} onwards</p>
-          {event.venue && <p className="mt-2 text-ink-soft">{event.venue.name}</p>}
-          {event.status !== 'SCHEDULED' && (
-            <p className="mx-auto mt-4 inline-block border border-maroon/40 px-3 py-1 text-sm text-maroon">
-              {event.status === 'POSTPONED' ? 'Postponed — new details to follow' : 'Cancelled'}
-            </p>
-          )}
-          <div className="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
-            <DirectionsButton venue={event.venue} className="sm:flex-1" />
-            <AddToCalendar event={event} allEvents={schedule.events} timeZone={tz} className="sm:flex-1" />
-          </div>
-          {upcoming && (
-            <div className="mt-10">
-              <Countdown target={event.startDateTime} now={now} />
+          <div className={scene ? 'grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] lg:gap-16' : undefined}>
+            {scene && (
+              <div className="mx-auto w-full max-w-[17rem] sm:max-w-[19rem] lg:order-last lg:max-w-none">
+                <Suspense fallback={<div className="skeleton w-full" style={{ aspectRatio: `${FILM_WIDTH} / ${scene.crop}` }} />}>
+                  <EventScene event={event} scene={scene} timeZone={tz} />
+                </Suspense>
+              </div>
+            )}
+            <div>
+              {isLive && <LiveBadge label="Happening now" className="mb-4" />}
+              {isPast && <p className="label-sm mb-4 text-ink-muted">This celebration has concluded</p>}
+              <h1 className="heading-xl uppercase tracking-[0.05em]">{event.name}</h1>
+              <OrnamentDivider className="mx-auto mt-6" />
+              <p className="mt-6 font-label text-[0.8rem] uppercase tracking-label text-ink">
+                {formatWeekday(event.startDateTime, tz)}, {formatLongDate(event.startDateTime, tz)}
+              </p>
+              <p className="mt-1 font-display text-2xl italic text-ink-soft">{formatTime(event.startDateTime, tz)} onwards</p>
+              {event.venue && <p className="mt-2 text-ink-soft">{event.venue.name}</p>}
+              {event.status !== 'SCHEDULED' && (
+                <p className="mx-auto mt-4 inline-block border border-maroon/40 px-3 py-1 text-sm text-maroon">
+                  {event.status === 'POSTPONED' ? 'Postponed — new details to follow' : 'Cancelled'}
+                </p>
+              )}
+              <div className="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
+                <DirectionsButton venue={event.venue} className="sm:flex-1" />
+                <AddToCalendar event={event} allEvents={schedule.events} timeZone={tz} className="sm:flex-1" />
+              </div>
+              {upcoming && (
+                <div className="mt-10">
+                  <Countdown target={event.startDateTime} now={now} />
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </header>
 

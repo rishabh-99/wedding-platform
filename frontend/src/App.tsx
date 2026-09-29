@@ -19,6 +19,7 @@ const JournalPage = lazy(() => pages().then((m) => ({ default: m.JournalPage }))
 const RsvpPage = lazy(() => pages().then((m) => ({ default: m.RsvpPage })));
 const BlessingsPage = lazy(() => pages().then((m) => ({ default: m.BlessingsPage })));
 const StoryPage = lazy(() => pages().then((m) => ({ default: m.StoryPage })));
+const FamilyPage = lazy(() => pages().then((m) => ({ default: m.FamilyPage })));
 const VenuesPage = lazy(() => pages().then((m) => ({ default: m.VenuesPage })));
 const TravelPage = lazy(() => pages().then((m) => ({ default: m.TravelPage })));
 const DressCodePage = lazy(() => pages().then((m) => ({ default: m.DressCodePage })));
@@ -76,6 +77,7 @@ export default function App() {
                   <Route path="rsvp" element={<RsvpPage />} />
                   <Route path="blessings" element={<BlessingsPage />} />
                   <Route path="story" element={<StoryPage />} />
+                  <Route path="family" element={<FamilyPage />} />
                   <Route path="travel" element={<TravelPage />} />
                   <Route path="dress-code" element={<DressCodePage />} />
                   <Route path="faq" element={<FaqPage />} />

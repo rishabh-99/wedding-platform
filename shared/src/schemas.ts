@@ -249,6 +249,7 @@ export const settingsInputSchema = z.object({
   siteDescription: trimmed(400).min(1),
   sections: z.object({
     story: z.boolean(),
+    family: z.boolean(),
     rsvp: z.boolean(),
     gallery: z.boolean(),
     guestbook: z.boolean(),

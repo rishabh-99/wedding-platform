@@ -27,6 +27,8 @@ export default defineConfig({
           react: ['react', 'react-dom', 'react-router-dom'],
           motion: ['framer-motion'],
           query: ['@tanstack/react-query'],
+          // Remotion draws the invitation-film artwork; only pages that show it load this chunk.
+          remotion: ['remotion', '@remotion/player'],
         },
       },
     },

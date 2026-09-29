@@ -18,6 +18,7 @@ interface NavItem {
 export const PRIMARY_NAV: NavItem[] = [
   { to: '/', label: 'Home' },
   { to: '/story', label: 'Our Story', section: 'story' },
+  { to: '/family', label: 'Family', section: 'family' },
   { to: '/celebrations', label: 'Celebrations' },
   { to: '/itinerary', label: 'Itinerary' },
   { to: '/gallery', label: 'Gallery', section: 'gallery' },

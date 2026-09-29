@@ -1,9 +1,11 @@
+import { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { formatDayMonth, formatTime, formatWeekday, groupEventsByDay } from '@wedding/shared';
 import { AddToCalendar } from '../components/events/AddToCalendar';
 import { Countdown } from '../components/events/Countdown';
 import { DirectionsButton } from '../components/events/DirectionsButton';
 import { EventTimeline } from '../components/events/EventTimeline';
+import { FamilyBlessings } from '../components/family/FamilyBlessings';
 import { WhatsHappeningNow } from '../components/events/WhatsHappeningNow';
 import { BlessingCards, GuestbookForm } from '../components/guestbook/Guestbook';
 import { LiveFeed } from '../components/live/LiveFeed';
@@ -96,7 +98,7 @@ export function CelebrationsPage() {
       ) : schedule.isError ? (
         <ErrorState onRetry={() => window.location.reload()} />
       ) : (
-        <EventTimeline events={schedule.events} timeZone={schedule.timezone} currentId={schedule.current?.id} pastIds={schedule.past.map((e) => e.id)} />
+        <EventTimeline events={schedule.events} timeZone={schedule.timezone} currentId={schedule.current?.id} pastIds={schedule.past.map((e) => e.id)} art />
       )}
     </Page>
   );
@@ -202,6 +204,29 @@ export function BlessingsPage() {
         )}
       </div>
     </Page>
+  );
+}
+
+const FamilyPortraits = lazy(() => import('../film/FamilyPortraits'));
+
+export function FamilyPage() {
+  const { data: settings } = useSettings();
+  if (settings && !settings.sections.family) return <SectionDisabled />;
+  return (
+    <>
+      <Page>
+        <SectionHeading as="h1" eyebrow="Rishabh & Nandita" title="Meet the family" />
+        <Suspense fallback={<LoadingBlock lines={6} label="Loading the family" />}>
+          <FamilyPortraits />
+        </Suspense>
+      </Page>
+      <section className="section border-t border-gold/20 bg-ivory-100/40" aria-labelledby="blessings-roll-title">
+        <div className="container-page">
+          <SectionHeading id="blessings-roll-title" eyebrow="With love from" title="Our families" />
+          <FamilyBlessings />
+        </div>
+      </section>
+    </>
   );
 }
 

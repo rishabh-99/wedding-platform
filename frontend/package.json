@@ -16,6 +16,7 @@
     "@fontsource/cormorant-garamond": "^5.1.0",
     "@fontsource/manrope": "^5.1.0",
     "@hookform/resolvers": "^3.9.1",
+    "@remotion/player": "4.0.530",
     "@tanstack/react-query": "^5.59.20",
     "@wedding/shared": "*",
     "framer-motion": "^11.11.13",
@@ -25,6 +26,7 @@
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.53.2",
     "react-router-dom": "^6.28.0",
+    "remotion": "4.0.530",
     "zod": "^3.23.8"
   },
   "devDependencies": {
