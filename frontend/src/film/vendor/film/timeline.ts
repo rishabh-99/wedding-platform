@@ -68,7 +68,7 @@ const intro: Beat[] = [
 ];
 const outro: Beat[] = [beat("finale", T("floral", 32)), beat("credits", T("card", 26))];
 
-export type VersionId = "full" | "engagement" | "reception";
+export type VersionId = "full" | "wedding" | "engagement" | "reception";
 
 /*
  * Music grid: 100 BPM at 30 fps ⇒ one beat = 18 frames, one bar = 72 frames.
@@ -112,11 +112,17 @@ const RAW: Record<VersionId, Beat[]> = {
     ...outro,
   ],
   engagement: [...intro, beat("engagement", T("floral", 32), true), ...outro],
+  // the full film without the Engagement and the Gala Dinner: family → Haldi & Mehendi … Vidai → finale
+  wedding: [] as Beat[],
   reception: [...intro, beat("reception", T("floral", 32), true), ...outro],
 };
+RAW.wedding = RAW.full
+  .filter((b) => b.scene !== "engagement" && b.scene !== "reception")
+  .map((b) => (b.scene === "haldiMehendi" ? { ...b, transitionIn: T("floral", 32) } : b));
 
 export const VERSIONS: Record<VersionId, Beat[]> = {
   full: snapToMusic(RAW.full),
+  wedding: snapToMusic(RAW.wedding),
   engagement: snapToMusic(RAW.engagement),
   reception: snapToMusic(RAW.reception),
 };

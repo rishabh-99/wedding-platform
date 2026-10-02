@@ -3,6 +3,7 @@
 import type { Invitation } from "./schema";
 import credits from "./credits.generated.json";
 
+// Timings per https://rishabhandnandita.in/itinerary (checked 1 Oct 2026).
 const STATUS_CLUB = "Status Club, Kanpur";
 
 export const defaultInvitation: Invitation = {
@@ -18,25 +19,25 @@ export const defaultInvitation: Invitation = {
       id: "engagement",
       title: "Engagement",
       date: "2026-10-20",
-      time: "11:00 AM",
-      venue: "Moon n Mars",
+      time: "2:00 PM",
+      venue: "Moon and Mars Resort",
     },
-    haldi: { id: "haldi", title: "Haldi", date: "2026-12-03", time: "10:00 AM", venue: STATUS_CLUB },
-    mehendi: { id: "mehendi", title: "Mehendi", date: "2026-12-03", time: "10:00 AM", venue: STATUS_CLUB },
-    sangeet: { id: "sangeet", title: "Sangeet", date: "2026-12-03", time: "9:00 PM", venue: STATUS_CLUB },
+    haldi: { id: "haldi", title: "Haldi", date: "2026-12-03", time: "9:00 AM", venue: STATUS_CLUB },
+    mehendi: { id: "mehendi", title: "Mehendi", date: "2026-12-03", time: "9:00 AM", venue: STATUS_CLUB },
+    sangeet: { id: "sangeet", title: "Sangeet", date: "2026-12-03", time: "7:00 PM", venue: STATUS_CLUB },
     weddingDay: {
       date: "2026-12-04",
       venue: STATUS_CLUB,
       items: [
         { id: "sehra", title: "Sehra Bandi", time: "9:30 AM" },
-        { id: "baraat", title: "Baraat Departure", time: "11:00 AM" },
+        { id: "baraat", title: "Baraat Departure", time: "10:30 AM" },
         { id: "jaimaal", title: "Jaimaal", time: "12:00 Noon" },
         { id: "lunch", title: "Lunch", time: "2:00 PM" },
         { id: "phere", title: "Phere", time: "4:00 PM" },
         { id: "vidai", title: "Vidai", time: "7:00 PM" },
       ],
     },
-    reception: { id: "reception", title: "Gala Dinner", date: "2026-12-06", time: "7:00 PM", venue: "Little Chef, Kanpur" },
+    reception: { id: "reception", title: "Gala Dinner", date: "2026-12-06", time: "7:00 PM", venue: "Little Chef, Imperia Hall, Gate No. 1, Civil Lines, Kanpur" },
   },
   // Edit family.txt (project root), then `npm run credits` — runs automatically before studio/export.
   credits,

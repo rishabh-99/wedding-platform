@@ -4,19 +4,51 @@
     "names": [
       {
         "name": "Late Mrs. Savitri Mehrotra",
-        "role": "Grandmother"
+        "role": "Dulha's Grandmother"
       },
       {
         "name": "Late Mr. Chandrika Prasad Mehrotra",
-        "role": "Grandfather"
+        "role": "Dulha's Grandfather"
       },
       {
         "name": "Late Mrs. Prem Mahajan",
-        "role": "Maternal Grandmother"
+        "role": "Dulha's Maternal Grandmother"
       },
       {
         "name": "Late Mr VK Mahajan",
-        "role": "Maternal Grandfather"
+        "role": "Dulha's Maternal Grandfather"
+      },
+      {
+        "name": "Mrs. Usha Sarin",
+        "role": "Dulha's Grandmother"
+      },
+      {
+        "name": "Mr. Shanti Ram Sarin",
+        "role": "Dulha's Grandfather"
+      },
+      {
+        "name": "Mrs. Savitri Kapoor",
+        "role": "Dulha's Grandmother"
+      },
+      {
+        "name": "Mr. Ramnath Kapoor",
+        "role": "Dulha's Grandfather"
+      },
+      {
+        "name": "Late Mrs. Preeti Lata Mishra",
+        "role": "Dulhan's Grandmother"
+      },
+      {
+        "name": "Late Mr. Jaswant Narayan Mishra",
+        "role": "Dulhan's Grandfather"
+      },
+      {
+        "name": "Mrs. Indira Dikshit",
+        "role": "Dulhan's Grandmother"
+      },
+      {
+        "name": "Late Mr. Ramesh Chandra Dikshit",
+        "role": "Dulhan's Grandfather"
       }
     ]
   },
@@ -30,6 +62,15 @@
       {
         "name": "Rishabh Mehrotra",
         "role": "Dulha"
+      }
+    ]
+  },
+  {
+    "heading": "Shahbala",
+    "names": [
+      {
+        "name": "Shubh Kapoor",
+        "role": "Bhanja"
       }
     ]
   },
@@ -77,6 +118,14 @@
       {
         "name": "Mr. Virendra Mehrotra",
         "role": "Taya"
+      },
+      {
+        "name": "Late Sri Rajendra Prasad Mehrotra",
+        "role": "Taya"
+      },
+      {
+        "name": "Late Sri Dinesh Mehrotra",
+        "role": "Taya"
       }
     ]
   },
@@ -98,6 +147,10 @@
       {
         "name": "Mr. Neel Sarin",
         "role": "Fufa"
+      },
+      {
+        "name": "Ms. Babita Mishra",
+        "role": "Bua"
       }
     ]
   },
@@ -119,6 +172,32 @@
       {
         "name": "Mr. Rajneesh Mahajan",
         "role": "Mama"
+      }
+    ]
+  },
+  {
+    "heading": "Chachi & Chacha",
+    "names": [
+      {
+        "name": "Mrs. Savita Verma",
+        "role": ""
+      },
+      {
+        "name": "Mr. Vipin Verma",
+        "role": ""
+      }
+    ]
+  },
+  {
+    "heading": "Aunty & Uncle",
+    "names": [
+      {
+        "name": "Mrs. Malti Verma",
+        "role": "Aunty"
+      },
+      {
+        "name": "Mr. Arun Kumar Verma",
+        "role": "Uncle"
       }
     ]
   },
@@ -147,16 +226,20 @@
     "heading": "Brothers",
     "names": [
       {
+        "name": "Hardik Sarin",
+        "role": "Elder Brother"
+      },
+      {
+        "name": "Ashish Verma",
+        "role": "Brother"
+      },
+      {
         "name": "Pranab Mehrotra",
         "role": "Younger Brother"
       },
       {
         "name": "Aniket Kapoor",
         "role": "Brother"
-      },
-      {
-        "name": "Hardik Sarin",
-        "role": "Elder Brother"
       },
       {
         "name": "Harsh Mehrotra",
@@ -171,7 +254,23 @@
         "role": "Brother"
       },
       {
-        "name": "Ashish Verma",
+        "name": "Harsh Verma",
+        "role": "Brother"
+      },
+      {
+        "name": "Himanshu Mahajan",
+        "role": "Brother"
+      },
+      {
+        "name": "Devansh Mahajan",
+        "role": "Brother"
+      },
+      {
+        "name": "Kunal Mahajan",
+        "role": "Brother"
+      },
+      {
+        "name": "Jatin Mahajan",
         "role": "Brother"
       }
     ]
@@ -208,7 +307,7 @@
         "role": "Sister and Jija"
       },
       {
-        "name": "Milan Mehrotra and Arjun Mehrotra",
+        "name": "Milan Mehrotra and Anuj Mehrotra",
         "role": "Sister and Jija"
       },
       {
@@ -221,6 +320,10 @@
       },
       {
         "name": "Kirti Vohra and Abhishek Vohra",
+        "role": "Sister and Jija"
+      },
+      {
+        "name": "Richa Saxena and Chintan Saxena",
         "role": "Sister and Jija"
       }
     ]

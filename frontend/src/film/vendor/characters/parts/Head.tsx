@@ -121,9 +121,40 @@ const SPEC_STYLE: Record<Specs, { stroke: string; width: number; rx: number; w: 
   rectDark: { stroke: "#2A1C17", width: 3.2, rx: 4, w: 31, h: 21 },
   matteBlack: { stroke: "#1B1918", width: 3, rx: 8, w: 30, h: 23 },
   roundedSquare: { stroke: "#6A4630", width: 2.8, rx: 9, w: 29, h: 25 },
+  genZ: { stroke: "#B9A3E3", width: 5.2, rx: 12, w: 35, h: 30 },
+};
+
+/** Gen Z: oversized, chunky see-through lilac frames with a keyhole bridge. */
+const GenZSpecs: React.FC = () => {
+  const s = SPEC_STYLE.genZ;
+  const L = 177;
+  const R = 223;
+  const y = 115;
+  const lens = (cx: number) => (
+    <g>
+      <rect x={cx - s.w / 2} y={y - s.h / 2} width={s.w} height={s.h} rx={s.rx} fill="#E9E1FA" fillOpacity={0.16} stroke={s.stroke} strokeOpacity={0.9} strokeWidth={s.width} />
+      <rect x={cx - s.w / 2 - s.width / 2} y={y - s.h / 2 - s.width / 2} width={s.w + s.width} height={s.h + s.width} rx={s.rx + s.width / 2} fill="none" stroke="#6E5A9A" strokeWidth={0.9} />
+      <rect x={cx - s.w / 2 + s.width / 2} y={y - s.h / 2 + s.width / 2} width={s.w - s.width} height={s.h - s.width} rx={s.rx - s.width / 2} fill="none" stroke="#6E5A9A" strokeWidth={0.7} opacity={0.7} />
+      <path d={`M${cx - 8} ${y + 7} L${cx + 5} ${y - 8}`} stroke="#FFFFFF" strokeWidth={2} opacity={0.55} strokeLinecap="round" />
+      <path d={`M${cx + 2} ${y + 8} L${cx + 9} ${y - 1}`} stroke="#FFFFFF" strokeWidth={1.2} opacity={0.4} strokeLinecap="round" />
+    </g>
+  );
+  const bridge = `M${L + s.w / 2} 110 C${L + s.w / 2 + 3} 101 ${R - s.w / 2 - 3} 101 ${R - s.w / 2} 110`;
+  return (
+    <g>
+      <path d={`M${L - s.w / 2} 109 L151 103`} stroke={s.stroke} strokeWidth={4} strokeLinecap="round" />
+      <path d={`M${R + s.w / 2} 109 L249 103`} stroke={s.stroke} strokeWidth={4} strokeLinecap="round" />
+      {lens(L)}
+      {lens(R)}
+      {/* keyhole bridge */}
+      <path d={bridge} fill="none" stroke={s.stroke} strokeWidth={4} strokeLinecap="round" />
+      <path d={bridge} fill="none" stroke="#6E5A9A" strokeWidth={0.8} />
+    </g>
+  );
 };
 
 const Spectacles: React.FC<{ kind: Specs }> = ({ kind }) => {
+  if (kind === "genZ") return <GenZSpecs />;
   const s = SPEC_STYLE[kind];
   const lens = (cx: number) => (
     <g>

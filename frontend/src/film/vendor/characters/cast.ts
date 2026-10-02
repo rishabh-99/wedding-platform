@@ -99,10 +99,10 @@ export const people = {
     skin: SKIN.pranab,
     hair: "kidMessy",
     hairColor: "#231915",
-    specs: "roundedSquare",
+    specs: "genZ",
     mouth: "grin",
-    scale: 0.74,
-    headScale: 1.55,
+    scale: 0.92, // shorter than Ashish (0.99) and Hardik (1.0)
+    headScale: 1.38,
   },
   guestM1: { id: "guestM1", name: "", role: "", face: "male", skin: "#C48B66", hair: "sidePart", hairColor: "#231915", mouth: "smile", scale: 0.98 },
   guestM2: { id: "guestM2", name: "", role: "", face: "male", skin: "#B98060", hair: "quiff", hairColor: "#1E1714", beard: "short", mouth: "grin", scale: 1 },

@@ -5,7 +5,7 @@
  * A Person (face, hair, skin, specs, build) never changes; an Outfit is swapped per event.
  */
 
-export type Specs = "roundGold" | "rectDark" | "matteBlack" | "roundedSquare";
+export type Specs = "roundGold" | "rectDark" | "matteBlack" | "roundedSquare" | "genZ";
 export type FaceShape = "male" | "female";
 export type HairStyle = "groomNeat" | "silverSide" | "sidePart" | "quiff" | "kidMessy" | "centreBun";
 export type Mouth = "smile" | "grin" | "softSmile";
